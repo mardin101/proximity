@@ -23,6 +23,8 @@ public partial class App : Application
     private IHost? _host;
     private ILogger? _logger;
     private readonly List<IModule> _modules = new();
+    private readonly HashSet<IModule> _initializedModules = new();
+    private readonly HashSet<IModule> _startedModules = new();
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -55,12 +57,14 @@ public partial class App : Application
             foreach (var module in _modules)
             {
                 await module.InitializeAsync();
+                _initializedModules.Add(module);
             }
 
             // Start all modules
             foreach (var module in _modules)
             {
                 await module.StartAsync();
+                _startedModules.Add(module);
             }
 
             _logger.Information("All modules started successfully");
@@ -86,16 +90,30 @@ public partial class App : Application
         {
             _logger?.Information("Application shutdown initiated");
 
-            // Stop all modules
-            foreach (var module in _modules)
+            // Stop all started modules (in reverse order)
+            foreach (var module in _startedModules.Reverse())
             {
-                await module.StopAsync();
+                try
+                {
+                    await module.StopAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error(ex, "Error stopping module {ModuleName}", module.ModuleName);
+                }
             }
 
-            // Dispose all modules
-            foreach (var module in _modules)
+            // Dispose all initialized modules (in reverse order)
+            foreach (var module in _initializedModules.Reverse())
             {
-                await module.DisposeAsync();
+                try
+                {
+                    await module.DisposeAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Error(ex, "Error disposing module {ModuleName}", module.ModuleName);
+                }
             }
 
             _logger?.Information("All modules stopped and disposed");
