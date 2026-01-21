@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: brainstorm
-description: [add a little description of this agent]
+description: Helps users explore and refine new feature ideas through thoughtful, Socratic questioning to create comprehensive GitHub issues
 ---
 
 # Feature Brainstorming Agent

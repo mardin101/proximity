@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: code-review
-description: [add a little description of this agent]
+description: Provides comprehensive automated code review covering security, quality, performance, test coverage, and documentation with actionable feedback
 ---
 
 # Code Review Agent 🔍

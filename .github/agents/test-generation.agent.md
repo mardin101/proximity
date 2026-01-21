@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: test-generation
-description: [add a little description of this agent]
+description: Creates comprehensive test coverage including unit, integration, and E2E tests that validate acceptance criteria and cover edge cases
 ---
 
 # Test Generation Agent 🧪

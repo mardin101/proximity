@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: decompose
-description: [add a little description of this agent]
+description: Systematically breaks down comprehensive GitHub issues into actionable, well-scoped sub-issues with clear acceptance criteria and dependencies
 ---
 
 # Feature Decomposition Agent

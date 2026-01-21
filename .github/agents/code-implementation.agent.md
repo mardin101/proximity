@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: code-implementation
-description: [add a little description of this agent]
+description: Transforms sub-issues into comprehensive implementation plans with step-by-step guidance, code examples, and quality considerations
 ---
 
 # Code Implementation Agent 🔨

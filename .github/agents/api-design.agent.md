@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: api-design
-description: [add a little description of this agent]
+description: Creates detailed, production-ready API specifications for REST, GraphQL, WebSocket, and gRPC interfaces with security and performance considerations
 ---
 
 # API Design Agent 🔌

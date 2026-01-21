@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: architecture
-description: [add a little description of this agent]
+description: Analyzes feature requirements and generates comprehensive technical architecture designs including system components, data models, and technology decisions
 ---
 
 # Architecture Agent 🏗️

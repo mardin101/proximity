@@ -5,7 +5,7 @@
 # For format details, see: https://gh.io/customagents/config
 
 name: documentation
-description: [add a little description of this agent]
+description: Generates comprehensive technical documentation including API references, code comments, user guides, and changelogs for implemented features
 ---
 
 # Documentation Agent 📚
