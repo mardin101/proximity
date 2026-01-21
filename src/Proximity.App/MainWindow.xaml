@@ -1,0 +1,104 @@
+﻿<Window x:Class="Proximity.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Proximity.App"
+        mc:Ignorable="d"
+        Title="Proximity - MVP Foundation" Height="450" Width="800"
+        Background="#2C2F33">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#23272A" Padding="20">
+            <StackPanel>
+                <TextBlock Text="Proximity" FontSize="32" FontWeight="Bold" 
+                          Foreground="#FFFFFF" HorizontalAlignment="Center"/>
+                <TextBlock Text="MVP Foundation - Application Scaffolding" FontSize="14" 
+                          Foreground="#99AAB5" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
+            <StackPanel>
+                <TextBlock Text="Application Status" FontSize="20" FontWeight="SemiBold" 
+                          Foreground="#FFFFFF" Margin="0,0,0,15"/>
+
+                <!-- Module Status Cards -->
+                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="✓ Core Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
+                        <TextBlock Text="Configuration and logging infrastructure initialized" 
+                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="✓ Audio Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
+                        <TextBlock Text="Ready for audio input/output implementation" 
+                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="✓ Network Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
+                        <TextBlock Text="Ready for network communication implementation" 
+                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="✓ UI Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
+                        <TextBlock Text="WPF interface with modular architecture" 
+                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Features -->
+                <TextBlock Text="Features Implemented" FontSize="20" FontWeight="SemiBold" 
+                          Foreground="#FFFFFF" Margin="0,20,0,15"/>
+
+                <Border Background="#23272A" CornerRadius="5" Padding="15">
+                    <StackPanel>
+                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
+                            <Run Text="✓" Foreground="#43B581"/> Modular architecture with plugin-style components
+                        </TextBlock>
+                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
+                            <Run Text="✓" Foreground="#43B581"/> Serilog logging framework (console and file output)
+                        </TextBlock>
+                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
+                            <Run Text="✓" Foreground="#43B581"/> Configuration system with appsettings.json
+                        </TextBlock>
+                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
+                            <Run Text="✓" Foreground="#43B581"/> Dependency injection with Microsoft.Extensions
+                        </TextBlock>
+                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
+                            <Run Text="✓" Foreground="#43B581"/> Application lifecycle management (startup/shutdown)
+                        </TextBlock>
+                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
+                            <Run Text="✓" Foreground="#43B581"/> Error handling and graceful shutdown
+                        </TextBlock>
+                        <TextBlock Foreground="#FFFFFF">
+                            <Run Text="✓" Foreground="#43B581"/> Portable executable (no installer required)
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="#23272A" Padding="15">
+            <TextBlock Text="All systems operational | Check logs folder for detailed logging" 
+                      FontSize="12" Foreground="#99AAB5" HorizontalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Window>
