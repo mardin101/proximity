@@ -1,0 +1,638 @@
+openapi: 3.0.3
+
+info:
+  title: API Name
+  description: |
+    Comprehensive description of your API.
+    
+    ## Authentication
+    This API uses Bearer token authentication. Include your token in the Authorization header:
+    ```
+    Authorization: Bearer YOUR_TOKEN_HERE
+    ```
+    
+    ## Rate Limiting
+    - Authenticated users: 100 requests per minute
+    - Anonymous users: 20 requests per hour
+    
+    ## Error Handling
+    All errors follow a consistent format. See the Error schema below.
+    
+  version: 1.0.0
+  contact:
+    name: API Support Team
+    email: api-support@example.com
+    url: https://example.com/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: https://example.com/terms
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: https://api-staging.example.com/v1
+    description: Staging server
+  - url: http://localhost:3000/v1
+    description: Local development server
+
+tags:
+  - name: Resources
+    description: Operations for managing resources
+  - name: Users
+    description: User management operations
+  - name: Authentication
+    description: Authentication and authorization operations
+
+security:
+  - BearerAuth: []
+
+paths:
+  /resources:
+    get:
+      summary: List resources
+      description: Retrieve a paginated list of resources
+      operationId: listResources
+      tags:
+        - Resources
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - $ref: '#/components/parameters/SortParam'
+        - $ref: '#/components/parameters/OrderParam'
+        - name: filter
+          in: query
+          description: Filter resources by field values (format - field:value)
+          schema:
+            type: string
+          example: "status:active"
+      responses:
+        '200':
+          description: Successful response
+          headers:
+            X-Total-Count:
+              description: Total number of resources
+              schema:
+                type: integer
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/X-RateLimit-Limit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/X-RateLimit-Remaining'
+            X-RateLimit-Reset:
+              $ref: '#/components/headers/X-RateLimit-Reset'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Resource'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+              examples:
+                success:
+                  $ref: '#/components/examples/ResourceListSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      summary: Create a resource
+      description: Create a new resource with the provided data
+      operationId: createResource
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResourceRequest'
+            examples:
+              basic:
+                $ref: '#/components/examples/CreateResourceBasic'
+      responses:
+        '201':
+          description: Resource created successfully
+          headers:
+            Location:
+              description: URL of the created resource
+              schema:
+                type: string
+                format: uri
+              example: /api/v1/resources/550e8400-e29b-41d4-a716-446655440000
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+              examples:
+                success:
+                  $ref: '#/components/examples/ResourceSuccess'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /resources/{resourceId}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceIdParam'
+
+    get:
+      summary: Get a resource
+      description: Retrieve a specific resource by ID
+      operationId: getResource
+      tags:
+        - Resources
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+              examples:
+                success:
+                  $ref: '#/components/examples/ResourceSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update a resource
+      description: Update an existing resource with new data
+      operationId: updateResource
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResourceRequest'
+      responses:
+        '200':
+          description: Resource updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Resource'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete a resource
+      description: Delete a specific resource by ID
+      operationId: deleteResource
+      tags:
+        - Resources
+      responses:
+        '204':
+          description: Resource deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer token authentication. 
+        Obtain a token from the `/auth/login` endpoint and include it in the Authorization header.
+
+  parameters:
+    ResourceIdParam:
+      name: resourceId
+      in: path
+      required: true
+      description: Unique identifier of the resource
+      schema:
+        type: string
+        format: uuid
+      example: 550e8400-e29b-41d4-a716-446655440000
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      example: 10
+
+    OffsetParam:
+      name: offset
+      in: query
+      description: Number of items to skip for pagination
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      example: 0
+
+    SortParam:
+      name: sort
+      in: query
+      description: Field to sort by
+      schema:
+        type: string
+        enum:
+          - created_at
+          - updated_at
+          - name
+        default: created_at
+      example: created_at
+
+    OrderParam:
+      name: order
+      in: query
+      description: Sort order
+      schema:
+        type: string
+        enum:
+          - asc
+          - desc
+        default: desc
+      example: desc
+
+  headers:
+    X-RateLimit-Limit:
+      description: The number of allowed requests in the current period
+      schema:
+        type: integer
+      example: 100
+
+    X-RateLimit-Remaining:
+      description: The number of remaining requests in the current period
+      schema:
+        type: integer
+      example: 95
+
+    X-RateLimit-Reset:
+      description: Unix timestamp when the rate limit resets
+      schema:
+        type: integer
+        format: int64
+      example: 1642684800
+
+  schemas:
+    Resource:
+      type: object
+      required:
+        - id
+        - name
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the resource
+          readOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Name of the resource
+        description:
+          type: string
+          maxLength: 1000
+          description: Optional description of the resource
+          nullable: true
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+            - archived
+          description: Current status of the resource
+        metadata:
+          type: object
+          description: Additional metadata as key-value pairs
+          additionalProperties:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the resource was created
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the resource was last updated
+          readOnly: true
+      example:
+        id: 550e8400-e29b-41d4-a716-446655440000
+        name: Example Resource
+        description: This is an example resource
+        status: active
+        metadata:
+          key1: value1
+          key2: value2
+        created_at: "2026-01-20T13:00:00Z"
+        updated_at: "2026-01-20T13:00:00Z"
+
+    CreateResourceRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Name of the resource
+        description:
+          type: string
+          maxLength: 1000
+          description: Optional description of the resource
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+          default: active
+          description: Initial status of the resource
+        metadata:
+          type: object
+          description: Additional metadata as key-value pairs
+          additionalProperties:
+            type: string
+
+    UpdateResourceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Name of the resource
+        description:
+          type: string
+          maxLength: 1000
+          description: Optional description of the resource
+          nullable: true
+        status:
+          type: string
+          enum:
+            - active
+            - inactive
+            - archived
+          description: Status of the resource
+        metadata:
+          type: object
+          description: Additional metadata as key-value pairs
+          additionalProperties:
+            type: string
+
+    Pagination:
+      type: object
+      required:
+        - total
+        - limit
+        - offset
+        - has_more
+      properties:
+        total:
+          type: integer
+          description: Total number of items available
+          example: 150
+        limit:
+          type: integer
+          description: Number of items per page
+          example: 20
+        offset:
+          type: integer
+          description: Number of items skipped
+          example: 0
+        has_more:
+          type: boolean
+          description: Whether there are more items available
+          example: true
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: INVALID_PARAMETER
+            message:
+              type: string
+              description: Human-readable error message
+              example: Invalid value for 'limit'. Must be between 1 and 100.
+            field:
+              type: string
+              description: Field that caused the error (for validation errors)
+              example: limit
+            details:
+              type: object
+              description: Additional error details
+              additionalProperties: true
+            request_id:
+              type: string
+              description: Unique request identifier for debugging
+              example: req-550e8400-e29b-41d4-a716-446655440000
+            timestamp:
+              type: string
+              format: date-time
+              description: Timestamp when the error occurred
+              example: "2026-01-20T13:00:00Z"
+
+  examples:
+    ResourceSuccess:
+      summary: Successful resource response
+      value:
+        id: 550e8400-e29b-41d4-a716-446655440000
+        name: Example Resource
+        description: This is an example resource
+        status: active
+        metadata:
+          key1: value1
+          key2: value2
+        created_at: "2026-01-20T13:00:00Z"
+        updated_at: "2026-01-20T13:00:00Z"
+
+    ResourceListSuccess:
+      summary: Successful list response
+      value:
+        data:
+          - id: 550e8400-e29b-41d4-a716-446655440000
+            name: Resource 1
+            description: First resource
+            status: active
+            metadata: {}
+            created_at: "2026-01-20T13:00:00Z"
+            updated_at: "2026-01-20T13:00:00Z"
+          - id: 660e8400-e29b-41d4-a716-446655440001
+            name: Resource 2
+            description: Second resource
+            status: inactive
+            metadata: {}
+            created_at: "2026-01-20T12:00:00Z"
+            updated_at: "2026-01-20T12:00:00Z"
+        pagination:
+          total: 150
+          limit: 20
+          offset: 0
+          has_more: true
+
+    CreateResourceBasic:
+      summary: Basic resource creation
+      value:
+        name: New Resource
+        description: A brand new resource
+        status: active
+        metadata:
+          key1: value1
+
+    ErrorBadRequest:
+      summary: Bad request error
+      value:
+        error:
+          code: INVALID_PARAMETER
+          message: Invalid value for 'limit'. Must be between 1 and 100.
+          field: limit
+          request_id: req-550e8400-e29b-41d4-a716-446655440000
+          timestamp: "2026-01-20T13:00:00Z"
+
+    ErrorUnauthorized:
+      summary: Unauthorized error
+      value:
+        error:
+          code: UNAUTHORIZED
+          message: Valid authentication token required.
+          request_id: req-550e8400-e29b-41d4-a716-446655440000
+          timestamp: "2026-01-20T13:00:00Z"
+
+    ErrorNotFound:
+      summary: Resource not found error
+      value:
+        error:
+          code: NOT_FOUND
+          message: Resource with id '550e8400-e29b-41d4-a716-446655440000' not found.
+          request_id: req-550e8400-e29b-41d4-a716-446655440000
+          timestamp: "2026-01-20T13:00:00Z"
+
+    ErrorRateLimit:
+      summary: Rate limit exceeded error
+      value:
+        error:
+          code: RATE_LIMIT_EXCEEDED
+          message: Rate limit exceeded. Try again in 42 seconds.
+          details:
+            retry_after: 42
+          request_id: req-550e8400-e29b-41d4-a716-446655440000
+          timestamp: "2026-01-20T13:00:00Z"
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid parameters or request body
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalid_parameter:
+              $ref: '#/components/examples/ErrorBadRequest'
+
+    Unauthorized:
+      description: Unauthorized - Authentication required or failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            unauthorized:
+              $ref: '#/components/examples/ErrorUnauthorized'
+
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Not found - Resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            not_found:
+              $ref: '#/components/examples/ErrorNotFound'
+
+    Conflict:
+      description: Conflict - Resource already exists or state conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    TooManyRequests:
+      description: Too many requests - Rate limit exceeded
+      headers:
+        Retry-After:
+          description: Number of seconds to wait before retrying
+          schema:
+            type: integer
+          example: 42
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            rate_limit:
+              $ref: '#/components/examples/ErrorRateLimit'
+
+    InternalServerError:
+      description: Internal server error - Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
