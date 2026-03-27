@@ -2,6 +2,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Proximity.Core\Proximity.Core.csproj" />
+    <ProjectReference Include="..\Proximity.Network\Proximity.Network.csproj" />
+    <ProjectReference Include="..\Proximity.Audio\Proximity.Audio.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
   </ItemGroup>
 
   <PropertyGroup>
