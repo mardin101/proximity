@@ -61,7 +61,14 @@ public class NetworkMessage
     /// </summary>
     public static NetworkMessage? Deserialize(string json)
     {
-        return JsonSerializer.Deserialize(json, JsonContext.Default.NetworkMessage);
+        try
+        {
+            return JsonSerializer.Deserialize(json, JsonContext.Default.NetworkMessage);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     /// <summary>
