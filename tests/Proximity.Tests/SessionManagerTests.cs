@@ -45,10 +45,11 @@ public class SessionManagerTests
     {
         var manager = new SessionManager(NullLogger<SessionManager>.Instance);
 
+        // Use localhost with an unused port for immediate connection refusal
         var session = new Core.Models.VoiceSession
         {
-            HostAddress = "192.168.255.255",
-            Port = 19999,
+            HostAddress = "127.0.0.1",
+            Port = 1,
             SessionName = "Unreachable"
         };
 

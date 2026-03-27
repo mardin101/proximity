@@ -46,13 +46,25 @@ public class SessionViewModel : ViewModelBase
     public int ParticipantCount
     {
         get => _participantCount;
-        set => SetProperty(ref _participantCount, value);
+        set
+        {
+            if (SetProperty(ref _participantCount, value))
+            {
+                OnPropertyChanged(nameof(ParticipantDisplay));
+            }
+        }
     }
 
     public int MaxParticipants
     {
         get => _maxParticipants;
-        set => SetProperty(ref _maxParticipants, value);
+        set
+        {
+            if (SetProperty(ref _maxParticipants, value))
+            {
+                OnPropertyChanged(nameof(ParticipantDisplay));
+            }
+        }
     }
 
     public string ParticipantDisplay => $"{ParticipantCount}/{MaxParticipants}";

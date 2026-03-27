@@ -253,9 +253,18 @@
                     <!-- Empty state -->
                     <TextBlock Text="No sessions found yet. Create one or wait for others to host."
                               Foreground="{StaticResource TextMuted}" FontSize="13"
-                              HorizontalAlignment="Center" Margin="0,20,0,0"
-                              Visibility="{Binding DiscoveredSessions.Count, 
-                                  Converter={StaticResource BoolToVis}, ConverterParameter=Invert}"/>
+                              HorizontalAlignment="Center" Margin="0,20,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DiscoveredSessions.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
 
                 <!-- Create session panel -->

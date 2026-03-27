@@ -478,23 +478,37 @@ public class MainViewModel : ViewModelBase
         });
     }
 
-    private void OnKicked(object? sender, string reason)
+    private async void OnKicked(object? sender, string reason)
     {
-        _dispatcher.Invoke(async () =>
+        try
         {
-            AddSystemMessage($"You were kicked: {reason}");
-            StatusMessage = $"Kicked from session: {reason}";
+            await _dispatcher.InvokeAsync(() =>
+            {
+                AddSystemMessage($"You were kicked: {reason}");
+                StatusMessage = $"Kicked from session: {reason}";
+            });
             await LeaveSessionAsync();
-        });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling kick");
+        }
     }
 
-    private void OnDisconnected(object? sender, string reason)
+    private async void OnDisconnected(object? sender, string reason)
     {
-        _dispatcher.Invoke(async () =>
+        try
         {
-            StatusMessage = $"Disconnected: {reason}";
+            await _dispatcher.InvokeAsync(() =>
+            {
+                StatusMessage = $"Disconnected: {reason}";
+            });
             await LeaveSessionAsync();
-        });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling disconnect");
+        }
     }
 
     private void UpdateParticipantList(List<Participant> participants)

@@ -110,7 +110,7 @@ public class SessionManager : ISessionManager
             if (response?.Type != MessageType.JoinResponse)
             {
                 _logger.LogWarning("Unexpected response type: {Type}", response?.Type);
-                _clientConnection.Dispose();
+                await CleanupAsync();
                 return false;
             }
 
@@ -118,7 +118,7 @@ public class SessionManager : ISessionManager
             if (joinResponse == null || !joinResponse.Accepted)
             {
                 _logger.LogWarning("Join request denied: {Reason}", joinResponse?.Reason ?? "Unknown");
-                _clientConnection.Dispose();
+                await CleanupAsync();
                 return false;
             }
 
@@ -155,9 +155,7 @@ public class SessionManager : ISessionManager
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to join session");
-            _clientConnection?.Dispose();
-            _clientConnection = null;
-            IsConnected = false;
+            await CleanupAsync();
             return false;
         }
     }
