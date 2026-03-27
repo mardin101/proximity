@@ -3,102 +3,511 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Proximity.App"
+        xmlns:vm="clr-namespace:Proximity.UI.ViewModels;assembly=Proximity.UI"
+        xmlns:conv="clr-namespace:Proximity.UI.Converters;assembly=Proximity.UI"
         mc:Ignorable="d"
-        Title="Proximity - MVP Foundation" Height="450" Width="800"
-        Background="#2C2F33">
+        Title="Proximity - LAN Voice Chat" Height="700" Width="1000"
+        MinHeight="500" MinWidth="700"
+        Background="#2C2F33"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <conv:EnumToVisibilityConverter x:Key="EnumToVis"/>
+        <conv:MuteStateConverter x:Key="MuteState"/>
+
+        <!-- Discord-like color scheme -->
+        <SolidColorBrush x:Key="BackgroundDark" Color="#23272A"/>
+        <SolidColorBrush x:Key="BackgroundMedium" Color="#2C2F33"/>
+        <SolidColorBrush x:Key="BackgroundLight" Color="#36393F"/>
+        <SolidColorBrush x:Key="AccentGreen" Color="#43B581"/>
+        <SolidColorBrush x:Key="AccentBlue" Color="#7289DA"/>
+        <SolidColorBrush x:Key="AccentRed" Color="#F04747"/>
+        <SolidColorBrush x:Key="TextPrimary" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondary" Color="#99AAB5"/>
+        <SolidColorBrush x:Key="TextMuted" Color="#72767D"/>
+        <SolidColorBrush x:Key="InputBackground" Color="#40444B"/>
+
+        <!-- Button style -->
+        <Style x:Key="AccentButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBlue}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#677BC4"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#4E5D94"/>
+                                <Setter Property="Foreground" Value="#99AAB5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GreenButton" TargetType="Button" BasedOn="{StaticResource AccentButton}">
+            <Setter Property="Background" Value="{StaticResource AccentGreen}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3CA374"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="RedButton" TargetType="Button" BasedOn="{StaticResource AccentButton}">
+            <Setter Property="Background" Value="{StaticResource AccentRed}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4" 
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#D63C3C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TextBox style -->
+        <Style x:Key="DarkTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="{StaticResource InputBackground}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CaretBrush" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4" 
+                                Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <!-- ===== USERNAME ENTRY VIEW ===== -->
+        <Grid Visibility="{Binding CurrentView, Converter={StaticResource EnumToVis}, ConverterParameter=UsernameEntry}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Background="#23272A" Padding="20">
-            <StackPanel>
-                <TextBlock Text="Proximity" FontSize="32" FontWeight="Bold" 
-                          Foreground="#FFFFFF" HorizontalAlignment="Center"/>
-                <TextBlock Text="MVP Foundation - Application Scaffolding" FontSize="14" 
-                          Foreground="#99AAB5" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+            <StackPanel Grid.Row="1" HorizontalAlignment="Center" Width="400">
+                <!-- Logo/Title -->
+                <TextBlock Text="🎧" FontSize="64" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                <TextBlock Text="Proximity" FontSize="36" FontWeight="Bold" 
+                          Foreground="{StaticResource TextPrimary}" HorizontalAlignment="Center"/>
+                <TextBlock Text="LAN Voice Chat" FontSize="16" 
+                          Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" Margin="0,5,0,30"/>
+
+                <!-- Username input -->
+                <TextBlock Text="CHOOSE A USERNAME" FontSize="11" FontWeight="Bold" 
+                          Foreground="{StaticResource TextSecondary}" Margin="0,0,0,8" 
+                         />
+                <TextBox Style="{StaticResource DarkTextBox}" 
+                        Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                        MaxLength="32">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Return" Command="{Binding SetUsernameCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+
+                <Button Content="Continue" Style="{StaticResource AccentButton}" 
+                       Command="{Binding SetUsernameCommand}" 
+                       Margin="0,15,0,0" HorizontalAlignment="Stretch"/>
+
+                <!-- Status message -->
+                <TextBlock Text="{Binding StatusMessage}" FontSize="12" 
+                          Foreground="{StaticResource AccentRed}" 
+                          HorizontalAlignment="Center" Margin="0,10,0,0"
+                          TextWrapping="Wrap"/>
             </StackPanel>
-        </Border>
+        </Grid>
 
-        <!-- Content -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
-            <StackPanel>
-                <TextBlock Text="Application Status" FontSize="20" FontWeight="SemiBold" 
-                          Foreground="#FFFFFF" Margin="0,0,0,15"/>
+        <!-- ===== SESSION BROWSER VIEW ===== -->
+        <Grid Visibility="{Binding CurrentView, Converter={StaticResource EnumToVis}, ConverterParameter=SessionBrowser}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-                <!-- Module Status Cards -->
-                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{StaticResource BackgroundDark}" Padding="20,15">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🎧 Proximity" FontSize="20" FontWeight="Bold" 
+                                  Foreground="{StaticResource TextPrimary}"/>
+                        <TextBlock Text=" — " Foreground="{StaticResource TextMuted}" FontSize="20"/>
+                        <TextBlock Text="{Binding Username}" FontSize="20" 
+                                  Foreground="{StaticResource AccentGreen}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Session list and create session -->
+            <Grid Grid.Row="1" Margin="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="300"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Available sessions -->
+                <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                    <TextBlock Text="AVAILABLE SESSIONS" FontSize="11" FontWeight="Bold" 
+                              Foreground="{StaticResource TextSecondary}" Margin="0,0,0,10"
+                             />
+
+                    <!-- Session list -->
+                    <ListBox ItemsSource="{Binding DiscoveredSessions}" 
+                            Background="Transparent" BorderThickness="0"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="{StaticResource BackgroundLight}" 
+                                       CornerRadius="5" Padding="15" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding SessionName}" FontSize="16" 
+                                                      FontWeight="SemiBold" Foreground="White"/>
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <TextBlock Text="Hosted by " FontSize="12" 
+                                                          Foreground="{StaticResource TextMuted}"/>
+                                                <TextBlock Text="{Binding HostName}" FontSize="12" 
+                                                          Foreground="{StaticResource TextSecondary}"/>
+                                                <TextBlock Text=" · " FontSize="12" 
+                                                          Foreground="{StaticResource TextMuted}"/>
+                                                <TextBlock Text="{Binding ParticipantDisplay}" FontSize="12" 
+                                                          Foreground="{StaticResource TextSecondary}"/>
+                                                <TextBlock Text=" users" FontSize="12" 
+                                                          Foreground="{StaticResource TextMuted}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <Button Grid.Column="1" Content="Join" 
+                                               Style="{StaticResource GreenButton}"
+                                               Command="{Binding DataContext.JoinSessionCommand, 
+                                                   RelativeSource={RelativeSource AncestorType=Window}}"
+                                               CommandParameter="{Binding}"
+                                               Padding="20,8" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- Empty state -->
+                    <TextBlock Text="No sessions found yet. Create one or wait for others to host."
+                              Foreground="{StaticResource TextMuted}" FontSize="13"
+                              HorizontalAlignment="Center" Margin="0,20,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DiscoveredSessions.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Create session panel -->
+                <Border Grid.Column="1" Background="{StaticResource BackgroundDark}" 
+                       CornerRadius="8" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="✓ Core Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
-                        <TextBlock Text="Configuration and logging infrastructure initialized" 
-                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
+                        <TextBlock Text="CREATE SESSION" FontSize="11" FontWeight="Bold" 
+                                  Foreground="{StaticResource TextSecondary}" Margin="0,0,0,15"
+                                 />
+
+                        <TextBlock Text="Session Name" FontSize="12" 
+                                  Foreground="{StaticResource TextSecondary}" Margin="0,0,0,5"/>
+                        <TextBox Style="{StaticResource DarkTextBox}" 
+                                Text="{Binding SessionName, UpdateSourceTrigger=PropertyChanged}"
+                                MaxLength="64">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Return" Command="{Binding CreateSessionCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
+
+                        <Button Content="🎤 Create Session" Style="{StaticResource GreenButton}" 
+                               Command="{Binding CreateSessionCommand}" 
+                               Margin="0,15,0,0" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Status bar -->
+            <Border Grid.Row="2" Background="{StaticResource BackgroundDark}" Padding="15,10">
+                <TextBlock Text="{Binding StatusMessage}" FontSize="12" 
+                          Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+            </Border>
+        </Grid>
+
+        <!-- ===== IN-SESSION VIEW ===== -->
+        <Grid Visibility="{Binding CurrentView, Converter={StaticResource EnumToVis}, ConverterParameter=InSession}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Session header -->
+            <Border Grid.Row="0" Background="{StaticResource BackgroundDark}" Padding="20,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🔊 " FontSize="18"/>
+                        <TextBlock Text="{Binding CurrentSessionName}" FontSize="18" 
+                                  FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+                        <TextBlock FontSize="14" Foreground="{StaticResource TextMuted}" 
+                                  VerticalAlignment="Center" Margin="10,0,0,0">
+                            <Run Text="{Binding Participants.Count, Mode=OneWay}"/>
+                            <Run Text=" members"/>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="{Binding IsMuted, Converter={StaticResource MuteState}}" 
+                               Command="{Binding ToggleMuteCommand}"
+                               Style="{StaticResource AccentButton}" Padding="15,8" Margin="0,0,8,0"/>
+                        <Button Content="🚪 Leave" Style="{StaticResource RedButton}" 
+                               Command="{Binding LeaveSessionCommand}" Padding="15,8"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Main content: Participants + Chat -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="280"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Participant list (left sidebar) -->
+                <Border Grid.Column="0" Background="{StaticResource BackgroundDark}">
+                    <StackPanel Margin="0,10,0,0">
+                        <TextBlock Text="PARTICIPANTS" FontSize="11" FontWeight="Bold" 
+                                  Foreground="{StaticResource TextMuted}" Margin="15,5,15,10"
+                                 />
+
+                        <ItemsControl ItemsSource="{Binding Participants}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Padding="15,8" Margin="4,1">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#32353B"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- User avatar circle -->
+                                            <Border Grid.Column="0" Width="32" Height="32" 
+                                                   CornerRadius="16" Background="{StaticResource AccentBlue}" 
+                                                   Margin="0,0,10,0">
+                                                <TextBlock Text="{Binding Username[0]}" 
+                                                          FontSize="14" FontWeight="Bold" Foreground="White"
+                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+
+                                            <!-- Username and role -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Username}" FontSize="14" 
+                                                              Foreground="White" FontWeight="Medium"/>
+                                                    <TextBlock Text=" (You)" FontSize="11" 
+                                                              Foreground="{StaticResource TextMuted}" 
+                                                              VerticalAlignment="Center"
+                                                              Visibility="{Binding IsSelf, 
+                                                                  Converter={StaticResource BoolToVis}}"/>
+                                                </StackPanel>
+                                                <TextBlock Text="{Binding RoleDisplay}" FontSize="11" 
+                                                          Foreground="{StaticResource TextMuted}"/>
+                                            </StackPanel>
+
+                                            <!-- Mute indicator -->
+                                            <TextBlock Grid.Column="2" Text="🔇" FontSize="14" 
+                                                      VerticalAlignment="Center"
+                                                      Visibility="{Binding IsMuted, 
+                                                          Converter={StaticResource BoolToVis}}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </Border>
 
-                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="✓ Audio Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
-                        <TextBlock Text="Ready for audio input/output implementation" 
-                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
+                <!-- Chat area (right side) -->
+                <Grid Grid.Column="1" Background="{StaticResource BackgroundLight}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="✓ Network Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
-                        <TextBlock Text="Ready for network communication implementation" 
-                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
+                    <!-- Chat messages -->
+                    <ListBox Grid.Row="0" ItemsSource="{Binding ChatMessages}" 
+                            Background="Transparent" BorderThickness="0"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            x:Name="ChatListBox">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Padding="15,6">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock FontSize="13" FontWeight="SemiBold" Margin="0,0,8,0">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource AccentBlue}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                                <Run Text="{Binding SenderName, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding TimeDisplay}" FontSize="11" 
+                                                      Foreground="{StaticResource TextMuted}" 
+                                                      VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Content}" FontSize="13" 
+                                                  TextWrapping="Wrap" Margin="0,2,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSystem}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+                                                            <Setter Property="FontStyle" Value="Italic"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
 
-                <Border Background="#23272A" CornerRadius="5" Padding="15" Margin="0,0,0,10">
-                    <StackPanel>
-                        <TextBlock Text="✓ UI Module" FontSize="16" Foreground="#43B581" FontWeight="SemiBold"/>
-                        <TextBlock Text="WPF interface with modular architecture" 
-                                  FontSize="12" Foreground="#99AAB5" Margin="0,5,0,0"/>
-                    </StackPanel>
-                </Border>
+                    <!-- Chat input -->
+                    <Border Grid.Row="1" Padding="15,10" Background="{StaticResource BackgroundLight}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                <!-- Features -->
-                <TextBlock Text="Features Implemented" FontSize="20" FontWeight="SemiBold" 
-                          Foreground="#FFFFFF" Margin="0,20,0,15"/>
+                            <TextBox Grid.Column="0" Style="{StaticResource DarkTextBox}"
+                                    Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}"
+                                    MaxLength="500">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Return" Command="{Binding SendChatCommand}"/>
+                                </TextBox.InputBindings>
+                            </TextBox>
 
-                <Border Background="#23272A" CornerRadius="5" Padding="15">
-                    <StackPanel>
-                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
-                            <Run Text="✓" Foreground="#43B581"/> Modular architecture with plugin-style components
-                        </TextBlock>
-                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
-                            <Run Text="✓" Foreground="#43B581"/> Serilog logging framework (console and file output)
-                        </TextBlock>
-                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
-                            <Run Text="✓" Foreground="#43B581"/> Configuration system with appsettings.json
-                        </TextBlock>
-                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
-                            <Run Text="✓" Foreground="#43B581"/> Dependency injection with Microsoft.Extensions
-                        </TextBlock>
-                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
-                            <Run Text="✓" Foreground="#43B581"/> Application lifecycle management (startup/shutdown)
-                        </TextBlock>
-                        <TextBlock Foreground="#FFFFFF" Margin="0,0,0,5">
-                            <Run Text="✓" Foreground="#43B581"/> Error handling and graceful shutdown
-                        </TextBlock>
-                        <TextBlock Foreground="#FFFFFF">
-                            <Run Text="✓" Foreground="#43B581"/> Portable executable (no installer required)
-                        </TextBlock>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
+                            <Button Grid.Column="1" Content="Send" 
+                                   Style="{StaticResource AccentButton}"
+                                   Command="{Binding SendChatCommand}" 
+                                   Padding="15,8" Margin="8,0,0,0"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Grid>
 
-        <!-- Footer -->
-        <Border Grid.Row="2" Background="#23272A" Padding="15">
-            <TextBlock Text="All systems operational | Check logs folder for detailed logging" 
-                      FontSize="12" Foreground="#99AAB5" HorizontalAlignment="Center"/>
-        </Border>
+            <!-- Status bar -->
+            <Border Grid.Row="2" Background="{StaticResource BackgroundDark}" Padding="15,8">
+                <Grid>
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="11" 
+                              Foreground="{StaticResource TextSecondary}"/>
+                    <TextBlock HorizontalAlignment="Right" FontSize="11" 
+                              Foreground="{StaticResource TextMuted}">
+                        <Run Text="Proximity v1.0 | LAN Voice Chat"/>
+                    </TextBlock>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

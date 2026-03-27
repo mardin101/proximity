@@ -9,6 +9,7 @@ using Proximity.Core.Configuration;
 using Proximity.Core.Interfaces;
 using Proximity.Core.Logging;
 using Proximity.Network;
+using Proximity.UI.ViewModels;
 using Serilog;
 using Serilog.Extensions.Logging;
 using ILogger = Serilog.ILogger;
@@ -158,6 +159,9 @@ public partial class App : Application
                 // Register modules
                 services.AddSingleton<AudioModule>();
                 services.AddSingleton<NetworkModule>();
+
+                // Register ViewModels
+                services.AddSingleton<MainViewModel>();
 
                 // Register main window
                 services.AddSingleton<MainWindow>();
