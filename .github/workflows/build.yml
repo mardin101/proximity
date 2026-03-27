@@ -1,0 +1,38 @@
+name: Build and Publish
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore Proximity.sln
+
+      - name: Build
+        run: dotnet build Proximity.sln -c Release --no-restore
+
+      - name: Test
+        run: dotnet test Proximity.sln -c Release --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish src/Proximity.App/Proximity.App.csproj -c Release -o publish
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Proximity-App
+          path: publish/
