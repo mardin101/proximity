@@ -139,13 +139,13 @@ public class MainViewModel : ViewModelBase
     {
         if (string.IsNullOrWhiteSpace(Username))
         {
-            StatusMessage = "Please enter a username";
+            StatusMessage = "Username must be between 1 and 32 characters";
             return;
         }
 
         if (Username.Length > 32)
         {
-            StatusMessage = "Username must be 32 characters or less";
+            StatusMessage = "Username must be between 1 and 32 characters";
             return;
         }
 
