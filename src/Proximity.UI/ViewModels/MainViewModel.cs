@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using Proximity.Audio;
+using Proximity.Core.Configuration;
 using Proximity.Core.Models;
 using Proximity.Network;
 
@@ -27,6 +28,7 @@ public class MainViewModel : ViewModelBase
     private readonly ILogger<MainViewModel> _logger;
     private readonly NetworkModule _networkModule;
     private readonly AudioModule _audioModule;
+    private readonly NetworkSettings _networkSettings;
     private readonly Dispatcher _dispatcher;
 
     // View state
@@ -118,11 +120,13 @@ public class MainViewModel : ViewModelBase
     public MainViewModel(
         ILogger<MainViewModel> logger,
         NetworkModule networkModule,
-        AudioModule audioModule)
+        AudioModule audioModule,
+        NetworkSettings networkSettings)
     {
         _logger = logger;
         _networkModule = networkModule;
         _audioModule = audioModule;
+        _networkSettings = networkSettings;
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
 
         // Initialize commands
@@ -232,7 +236,7 @@ public class MainViewModel : ViewModelBase
             await StopDiscoveryAsync();
 
             var session = await _networkModule.SessionManager!.CreateSessionAsync(
-                SessionName, Username, 7777);
+                SessionName, Username, _networkSettings.Port);
 
             // Start broadcasting the session
             await _networkModule.Discovery!.StartBroadcastingAsync(session);

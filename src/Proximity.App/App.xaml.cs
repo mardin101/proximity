@@ -34,7 +34,7 @@ public partial class App : Application
         try
         {
             // Build configuration
-            var configuration = BuildConfiguration();
+            var configuration = BuildConfiguration(e.Args);
 
             // Configure Serilog
             _logger = LoggingConfiguration.ConfigureLogging(configuration);
@@ -132,11 +132,17 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    private static IConfiguration BuildConfiguration()
+    private static IConfiguration BuildConfiguration(string[] args)
     {
+        var switchMappings = new Dictionary<string, string>
+        {
+            { "--port", "Network:Port" }
+        };
+
         return new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .AddCommandLine(args, switchMappings)
             .Build();
     }
 
@@ -148,6 +154,14 @@ public partial class App : Application
                 // Register configuration
                 services.AddSingleton(configuration);
                 services.Configure<AppSettings>(configuration);
+
+                // Register network settings for port configuration
+                var networkSettings = new NetworkSettings
+                {
+                    Port = configuration.GetValue("Network:Port", 7777),
+                    MaxConnections = configuration.GetValue("Network:MaxConnections", 10)
+                };
+                services.AddSingleton(networkSettings);
 
                 // Register logging
                 services.AddLogging(builder =>
