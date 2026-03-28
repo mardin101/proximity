@@ -294,8 +294,15 @@
 
             <!-- Status bar -->
             <Border Grid.Row="2" Background="{StaticResource BackgroundDark}" Padding="15,10">
-                <TextBlock Text="{Binding StatusMessage}" FontSize="12" 
-                          Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
+                <Grid>
+                    <Button Content="⚙ Settings" Style="{StaticResource AccentButton}"
+                            Command="{Binding ToggleSettingsCommand}"
+                            Padding="10,4" FontSize="12"
+                            HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" FontSize="12" 
+                              Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"
+                              VerticalAlignment="Center"/>
+                </Grid>
             </Border>
         </Grid>
 
@@ -500,14 +507,53 @@
             <!-- Status bar -->
             <Border Grid.Row="2" Background="{StaticResource BackgroundDark}" Padding="15,8">
                 <Grid>
+                    <Button Content="⚙ Settings" Style="{StaticResource AccentButton}"
+                            Command="{Binding ToggleSettingsCommand}"
+                            Padding="10,4" FontSize="12"
+                            HorizontalAlignment="Left" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding StatusMessage}" FontSize="11" 
-                              Foreground="{StaticResource TextSecondary}"/>
+                              Foreground="{StaticResource TextSecondary}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <TextBlock HorizontalAlignment="Right" FontSize="11" 
-                              Foreground="{StaticResource TextMuted}">
+                              Foreground="{StaticResource TextMuted}" VerticalAlignment="Center">
                         <Run Text="Proximity v1.0 | LAN Voice Chat"/>
                     </TextBlock>
                 </Grid>
             </Border>
         </Grid>
+        <!-- ===== SETTINGS POPUP ===== -->
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Left"
+                Margin="10,0,0,50" MaxWidth="350"
+                Background="{StaticResource BackgroundDark}" CornerRadius="8"
+                Padding="20"
+                Visibility="{Binding IsSettingsOpen, Converter={StaticResource BoolToVis}}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="15" Opacity="0.5" ShadowDepth="2"/>
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="AUDIO SETTINGS" FontSize="11" FontWeight="Bold"
+                          Foreground="{StaticResource TextSecondary}" Margin="0,0,0,15"/>
+
+                <!-- Input Device -->
+                <TextBlock Text="Input Device (Microphone)" FontSize="12"
+                          Foreground="{StaticResource TextSecondary}" Margin="0,0,0,5"/>
+                <ComboBox ItemsSource="{Binding InputDevices}"
+                         SelectedItem="{Binding SelectedInputDevice}"
+                         DisplayMemberPath="Name"
+                         Background="{StaticResource InputBackground}"
+                         Foreground="White" FontSize="13"
+                         Padding="8,6" Margin="0,0,0,15"/>
+
+                <!-- Output Device -->
+                <TextBlock Text="Output Device (Speakers)" FontSize="12"
+                          Foreground="{StaticResource TextSecondary}" Margin="0,0,0,5"/>
+                <ComboBox ItemsSource="{Binding OutputDevices}"
+                         SelectedItem="{Binding SelectedOutputDevice}"
+                         DisplayMemberPath="Name"
+                         Background="{StaticResource InputBackground}"
+                         Foreground="White" FontSize="13"
+                         Padding="8,6"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

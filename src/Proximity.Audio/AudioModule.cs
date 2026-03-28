@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Proximity.Core.Interfaces;
+using Proximity.Core.Models;
 
 namespace Proximity.Audio;
 
@@ -24,6 +25,26 @@ public class AudioModule : IModule
     public bool IsMuted { get; set; }
 
     /// <summary>
+    /// Available input (microphone) devices
+    /// </summary>
+    public IReadOnlyList<AudioDevice> InputDevices { get; private set; } = Array.Empty<AudioDevice>();
+
+    /// <summary>
+    /// Available output (speaker) devices
+    /// </summary>
+    public IReadOnlyList<AudioDevice> OutputDevices { get; private set; } = Array.Empty<AudioDevice>();
+
+    /// <summary>
+    /// Currently selected input device
+    /// </summary>
+    public AudioDevice? SelectedInputDevice { get; private set; }
+
+    /// <summary>
+    /// Currently selected output device
+    /// </summary>
+    public AudioDevice? SelectedOutputDevice { get; private set; }
+
+    /// <summary>
     /// Per-participant volume levels (0.0 to 1.0)
     /// </summary>
     private readonly Dictionary<Guid, float> _participantVolumes = new();
@@ -37,6 +58,7 @@ public class AudioModule : IModule
     public Task InitializeAsync()
     {
         _logger.LogInformation("Audio module initializing...");
+        RefreshDevices();
         _logger.LogInformation("Audio module initialized (platform audio will be configured on session join)");
         return Task.CompletedTask;
     }
@@ -80,6 +102,56 @@ public class AudioModule : IModule
         {
             _participantVolumes.Remove(participantId);
         }
+    }
+
+    /// <summary>
+    /// Refresh the list of available audio devices
+    /// </summary>
+    public void RefreshDevices()
+    {
+        // Placeholder: enumerate platform audio devices here (e.g., via NAudio)
+        // For now, provide a default device for each direction
+        var defaultInput = new AudioDevice
+        {
+            Id = "default-input",
+            Name = "Default Microphone",
+            IsDefault = true
+        };
+
+        var defaultOutput = new AudioDevice
+        {
+            Id = "default-output",
+            Name = "Default Speakers",
+            IsDefault = true
+        };
+
+        InputDevices = new List<AudioDevice> { defaultInput };
+        OutputDevices = new List<AudioDevice> { defaultOutput };
+
+        // Auto-select defaults if nothing is selected
+        SelectedInputDevice ??= defaultInput;
+        SelectedOutputDevice ??= defaultOutput;
+
+        _logger.LogInformation("Refreshed audio devices: {InputCount} input(s), {OutputCount} output(s)",
+            InputDevices.Count, OutputDevices.Count);
+    }
+
+    /// <summary>
+    /// Select an input (microphone) device
+    /// </summary>
+    public void SelectInputDevice(AudioDevice device)
+    {
+        SelectedInputDevice = device;
+        _logger.LogInformation("Selected input device: {DeviceName} ({DeviceId})", device.Name, device.Id);
+    }
+
+    /// <summary>
+    /// Select an output (speaker) device
+    /// </summary>
+    public void SelectOutputDevice(AudioDevice device)
+    {
+        SelectedOutputDevice = device;
+        _logger.LogInformation("Selected output device: {DeviceName} ({DeviceId})", device.Name, device.Id);
     }
 
     public Task StopAsync()

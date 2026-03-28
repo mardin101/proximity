@@ -41,11 +41,16 @@ public class MainViewModel : ViewModelBase
     private string _chatInput = string.Empty;
     private string _currentSessionName = string.Empty;
     private bool _isHost;
+    private bool _isSettingsOpen;
+    private AudioDevice? _selectedInputDevice;
+    private AudioDevice? _selectedOutputDevice;
 
     // Collections
     public ObservableCollection<SessionViewModel> DiscoveredSessions { get; } = new();
     public ObservableCollection<ParticipantViewModel> Participants { get; } = new();
     public ObservableCollection<ChatMessageViewModel> ChatMessages { get; } = new();
+    public ObservableCollection<AudioDevice> InputDevices { get; } = new();
+    public ObservableCollection<AudioDevice> OutputDevices { get; } = new();
 
     // Commands
     public ICommand SetUsernameCommand { get; }
@@ -55,6 +60,7 @@ public class MainViewModel : ViewModelBase
     public ICommand ToggleMuteCommand { get; }
     public ICommand SendChatCommand { get; }
     public ICommand KickParticipantCommand { get; }
+    public ICommand ToggleSettingsCommand { get; }
 
     // Properties
     public AppView CurrentView
@@ -117,6 +123,36 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _isHost, value);
     }
 
+    public bool IsSettingsOpen
+    {
+        get => _isSettingsOpen;
+        set => SetProperty(ref _isSettingsOpen, value);
+    }
+
+    public AudioDevice? SelectedInputDevice
+    {
+        get => _selectedInputDevice;
+        set
+        {
+            if (SetProperty(ref _selectedInputDevice, value) && value != null)
+            {
+                _audioModule.SelectInputDevice(value);
+            }
+        }
+    }
+
+    public AudioDevice? SelectedOutputDevice
+    {
+        get => _selectedOutputDevice;
+        set
+        {
+            if (SetProperty(ref _selectedOutputDevice, value) && value != null)
+            {
+                _audioModule.SelectOutputDevice(value);
+            }
+        }
+    }
+
     public MainViewModel(
         ILogger<MainViewModel> logger,
         NetworkModule networkModule,
@@ -137,6 +173,42 @@ public class MainViewModel : ViewModelBase
         ToggleMuteCommand = new RelayCommand(ToggleMute);
         SendChatCommand = new AsyncRelayCommand(SendChatAsync);
         KickParticipantCommand = new AsyncRelayCommand(KickParticipantAsync);
+        ToggleSettingsCommand = new RelayCommand(ToggleSettings);
+
+        // Load available audio devices
+        LoadAudioDevices();
+    }
+
+    private void ToggleSettings()
+    {
+        IsSettingsOpen = !IsSettingsOpen;
+        if (IsSettingsOpen)
+        {
+            LoadAudioDevices();
+        }
+    }
+
+    private void LoadAudioDevices()
+    {
+        _audioModule.RefreshDevices();
+
+        InputDevices.Clear();
+        foreach (var device in _audioModule.InputDevices)
+        {
+            InputDevices.Add(device);
+        }
+
+        OutputDevices.Clear();
+        foreach (var device in _audioModule.OutputDevices)
+        {
+            OutputDevices.Add(device);
+        }
+
+        _selectedInputDevice = _audioModule.SelectedInputDevice;
+        OnPropertyChanged(nameof(SelectedInputDevice));
+
+        _selectedOutputDevice = _audioModule.SelectedOutputDevice;
+        OnPropertyChanged(nameof(SelectedOutputDevice));
     }
 
     private async Task SetUsernameAsync()

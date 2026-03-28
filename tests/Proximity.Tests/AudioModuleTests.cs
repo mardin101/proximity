@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Proximity.Audio;
+using Proximity.Core.Models;
 
 namespace Proximity.Tests;
 
@@ -91,5 +92,70 @@ public class AudioModuleTests
 
         _audioModule.IsMuted = false;
         Assert.False(_audioModule.IsMuted);
+    }
+
+    [Fact]
+    public void RefreshDevices_PopulatesInputAndOutputDevices()
+    {
+        _audioModule.RefreshDevices();
+
+        Assert.NotEmpty(_audioModule.InputDevices);
+        Assert.NotEmpty(_audioModule.OutputDevices);
+    }
+
+    [Fact]
+    public void RefreshDevices_SetsDefaultSelectedDevices()
+    {
+        _audioModule.RefreshDevices();
+
+        Assert.NotNull(_audioModule.SelectedInputDevice);
+        Assert.NotNull(_audioModule.SelectedOutputDevice);
+    }
+
+    [Fact]
+    public void SelectInputDevice_UpdatesSelectedDevice()
+    {
+        _audioModule.RefreshDevices();
+
+        var device = new AudioDevice { Id = "test-mic", Name = "Test Microphone" };
+        _audioModule.SelectInputDevice(device);
+
+        Assert.Equal("test-mic", _audioModule.SelectedInputDevice?.Id);
+    }
+
+    [Fact]
+    public void SelectOutputDevice_UpdatesSelectedDevice()
+    {
+        _audioModule.RefreshDevices();
+
+        var device = new AudioDevice { Id = "test-speaker", Name = "Test Speaker" };
+        _audioModule.SelectOutputDevice(device);
+
+        Assert.Equal("test-speaker", _audioModule.SelectedOutputDevice?.Id);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_RefreshesDevices()
+    {
+        await _audioModule.InitializeAsync();
+
+        Assert.NotEmpty(_audioModule.InputDevices);
+        Assert.NotEmpty(_audioModule.OutputDevices);
+        Assert.NotNull(_audioModule.SelectedInputDevice);
+        Assert.NotNull(_audioModule.SelectedOutputDevice);
+    }
+
+    [Fact]
+    public void RefreshDevices_PreservesExistingSelection()
+    {
+        _audioModule.RefreshDevices();
+
+        var customDevice = new AudioDevice { Id = "custom", Name = "Custom Device" };
+        _audioModule.SelectInputDevice(customDevice);
+
+        _audioModule.RefreshDevices();
+
+        // After refresh, the selection should be preserved (not overwritten)
+        Assert.Equal("custom", _audioModule.SelectedInputDevice?.Id);
     }
 }
