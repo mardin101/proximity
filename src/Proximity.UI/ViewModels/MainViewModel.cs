@@ -434,22 +434,23 @@ public class MainViewModel : ViewModelBase
             }
 
             // Restore selection or select default
-            if (SelectedInputDevice != null)
+            var previousInputId = SelectedInputDevice?.Id;
+            var previousOutputId = SelectedOutputDevice?.Id;
+
+            if (previousInputId != null)
             {
-                _selectedInputDevice = InputDevices.FirstOrDefault(d => d.Id == SelectedInputDevice.Id);
-                OnPropertyChanged(nameof(SelectedInputDevice));
+                SelectedInputDevice = InputDevices.FirstOrDefault(d => d.Id == previousInputId);
             }
-            else if (InputDevices.Count > 0)
+            if (SelectedInputDevice == null && InputDevices.Count > 0)
             {
                 SelectedInputDevice = InputDevices[0];
             }
 
-            if (SelectedOutputDevice != null)
+            if (previousOutputId != null)
             {
-                _selectedOutputDevice = OutputDevices.FirstOrDefault(d => d.Id == SelectedOutputDevice.Id);
-                OnPropertyChanged(nameof(SelectedOutputDevice));
+                SelectedOutputDevice = OutputDevices.FirstOrDefault(d => d.Id == previousOutputId);
             }
-            else if (OutputDevices.Count > 0)
+            if (SelectedOutputDevice == null && OutputDevices.Count > 0)
             {
                 SelectedOutputDevice = OutputDevices[0];
             }

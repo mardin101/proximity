@@ -83,14 +83,44 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
 
     public AudioDevice? GetDefaultInputDevice()
     {
-        var devices = GetInputDevices();
-        return devices.Count > 0 ? devices[0] : null;
+        try
+        {
+            if (NativeMethods.waveInGetNumDevs() > 0)
+            {
+                var caps = new NativeMethods.WAVEINCAPS();
+                if (NativeMethods.waveInGetDevCaps(0, ref caps, Marshal.SizeOf(caps)) == 0)
+                {
+                    return new AudioDevice("0", caps.szPname, isInput: true, isOutput: false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get default input device");
+        }
+
+        return null;
     }
 
     public AudioDevice? GetDefaultOutputDevice()
     {
-        var devices = GetOutputDevices();
-        return devices.Count > 0 ? devices[0] : null;
+        try
+        {
+            if (NativeMethods.waveOutGetNumDevs() > 0)
+            {
+                var caps = new NativeMethods.WAVEOUTCAPS();
+                if (NativeMethods.waveOutGetDevCaps(0, ref caps, Marshal.SizeOf(caps)) == 0)
+                {
+                    return new AudioDevice("0", caps.szPname, isInput: false, isOutput: true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get default output device");
+        }
+
+        return null;
     }
 
     /// <summary>
