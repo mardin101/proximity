@@ -3,7 +3,7 @@ namespace Proximity.Core.Models;
 /// <summary>
 /// Represents an audio device (input or output)
 /// </summary>
-public class AudioDevice
+public class AudioDevice : IEquatable<AudioDevice>
 {
     /// <summary>
     /// Unique identifier for the device
@@ -20,14 +20,30 @@ public class AudioDevice
     /// </summary>
     public bool IsDefault { get; set; }
 
+    public bool Equals(AudioDevice? other)
+    {
+        return other is not null && Id == other.Id;
+    }
+
     public override bool Equals(object? obj)
     {
-        return obj is AudioDevice device && Id == device.Id;
+        return Equals(obj as AudioDevice);
     }
 
     public override int GetHashCode()
     {
         return Id.GetHashCode();
+    }
+
+    public static bool operator ==(AudioDevice? left, AudioDevice? right)
+    {
+        if (left is null) return right is null;
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(AudioDevice? left, AudioDevice? right)
+    {
+        return !(left == right);
     }
 
     public override string ToString() => Name;

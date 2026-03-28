@@ -204,6 +204,7 @@ public class MainViewModel : ViewModelBase
             OutputDevices.Add(device);
         }
 
+        // Sync selections from AudioModule without triggering SelectInputDevice/SelectOutputDevice
         _selectedInputDevice = _audioModule.SelectedInputDevice;
         OnPropertyChanged(nameof(SelectedInputDevice));
 
