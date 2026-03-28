@@ -51,7 +51,7 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
 
                 if (result == MMSYSERR_NOERROR)
                 {
-                    var name = caps.szPname?.Trim('\0') ?? $"Input Device {i}";
+                    var name = caps.szPname?.Trim('\0') ?? $"Input Device {i + 1}";
                     if (!string.IsNullOrWhiteSpace(name))
                     {
                         devices.Add(new AudioDevice
@@ -107,7 +107,7 @@ public class AudioDeviceEnumerator : IAudioDeviceEnumerator
 
                 if (result == MMSYSERR_NOERROR)
                 {
-                    var name = caps.szPname?.Trim('\0') ?? $"Output Device {i}";
+                    var name = caps.szPname?.Trim('\0') ?? $"Output Device {i + 1}";
                     if (!string.IsNullOrWhiteSpace(name))
                     {
                         devices.Add(new AudioDevice
