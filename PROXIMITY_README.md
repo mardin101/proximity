@@ -174,6 +174,57 @@ To run tests (when implemented):
 dotnet test
 ```
 
+### Testing with Multiple Participants on One Workstation
+
+You can run multiple instances of Proximity on the same machine by giving each instance a different port via the `--port` command-line argument. Each instance acts as an independent participant that can host or join sessions.
+
+**Step 1: Build the application**
+
+```bash
+dotnet build Proximity.sln
+```
+
+**Step 2: Launch Instance 1 (Host) with the default port**
+
+```bash
+dotnet run --project src/Proximity.App/Proximity.App.csproj
+```
+
+This starts on the default port `7777` (configured in `appsettings.json`).
+
+**Step 3: Launch Instance 2 (Participant) with a different port**
+
+Open a second terminal and run:
+
+```bash
+dotnet run --project src/Proximity.App/Proximity.App.csproj -- --port 7780
+```
+
+> **Note:** The `--` separator tells `dotnet run` that `--port 7780` is an argument for
+> the application, not for `dotnet` itself.
+
+**Step 4: Connect the instances**
+
+1. In Instance 1, enter a username and create a session.
+2. In Instance 2, enter a different username. The session browser will automatically discover
+   Instance 1's session via UDP broadcast.
+3. Click "Join" on the discovered session.
+
+**Adding more participants:**
+
+Launch additional instances with unique ports:
+
+```bash
+dotnet run --project src/Proximity.App/Proximity.App.csproj -- --port 7783
+dotnet run --project src/Proximity.App/Proximity.App.csproj -- --port 7786
+```
+
+> **Tip:** Space ports at least 2 apart (e.g., 7777, 7780, 7783) because each session uses
+> its configured port for TCP control and `port + 1` for UDP audio transport.
+
+You can also override the port in `appsettings.json` directly if you prefer not to use
+command-line arguments, or create multiple copies of the config file in separate directories.
+
 ## 🛠️ Development
 
 ### Building for Release
