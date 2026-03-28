@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Proximity.Core.Interfaces;
+using Proximity.Core.Models;
 
 namespace Proximity.Audio;
 
@@ -10,6 +11,7 @@ namespace Proximity.Audio;
 public class AudioModule : IModule
 {
     private readonly ILogger<AudioModule> _logger;
+    private readonly IAudioDeviceEnumerator _deviceEnumerator;
 
     public string ModuleName => "Audio";
 
@@ -24,19 +26,37 @@ public class AudioModule : IModule
     public bool IsMuted { get; set; }
 
     /// <summary>
+    /// Currently selected input (microphone) device, or null for system default
+    /// </summary>
+    public AudioDevice? SelectedInputDevice { get; private set; }
+
+    /// <summary>
+    /// Currently selected output (speaker) device, or null for system default
+    /// </summary>
+    public AudioDevice? SelectedOutputDevice { get; private set; }
+
+    /// <summary>
     /// Per-participant volume levels (0.0 to 1.0)
     /// </summary>
     private readonly Dictionary<Guid, float> _participantVolumes = new();
     private readonly object _volumeLock = new();
 
-    public AudioModule(ILogger<AudioModule> logger)
+    public AudioModule(ILogger<AudioModule> logger, IAudioDeviceEnumerator deviceEnumerator)
     {
         _logger = logger;
+        _deviceEnumerator = deviceEnumerator;
     }
 
     public Task InitializeAsync()
     {
         _logger.LogInformation("Audio module initializing...");
+
+        // Set default devices on initialization
+        SelectedInputDevice = _deviceEnumerator.GetDefaultInputDevice();
+        SelectedOutputDevice = _deviceEnumerator.GetDefaultOutputDevice();
+
+        _logger.LogInformation("Default input device: {InputDevice}", SelectedInputDevice?.Name ?? "None");
+        _logger.LogInformation("Default output device: {OutputDevice}", SelectedOutputDevice?.Name ?? "None");
         _logger.LogInformation("Audio module initialized (platform audio will be configured on session join)");
         return Task.CompletedTask;
     }
@@ -45,6 +65,54 @@ public class AudioModule : IModule
     {
         _logger.LogInformation("Audio module started");
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Get all available audio input (microphone) devices
+    /// </summary>
+    public IReadOnlyList<AudioDevice> GetInputDevices()
+    {
+        return _deviceEnumerator.GetInputDevices();
+    }
+
+    /// <summary>
+    /// Get all available audio output (speaker) devices
+    /// </summary>
+    public IReadOnlyList<AudioDevice> GetOutputDevices()
+    {
+        return _deviceEnumerator.GetOutputDevices();
+    }
+
+    /// <summary>
+    /// Select an input (microphone) device by its ID
+    /// </summary>
+    public bool SetInputDevice(AudioDevice? device)
+    {
+        if (device != null && !device.IsInput)
+        {
+            _logger.LogWarning("Attempted to set non-input device '{DeviceName}' as input", device.Name);
+            return false;
+        }
+
+        SelectedInputDevice = device;
+        _logger.LogInformation("Input device changed to: {DeviceName}", device?.Name ?? "System Default");
+        return true;
+    }
+
+    /// <summary>
+    /// Select an output (speaker) device by its ID
+    /// </summary>
+    public bool SetOutputDevice(AudioDevice? device)
+    {
+        if (device != null && !device.IsOutput)
+        {
+            _logger.LogWarning("Attempted to set non-output device '{DeviceName}' as output", device.Name);
+            return false;
+        }
+
+        SelectedOutputDevice = device;
+        _logger.LogInformation("Output device changed to: {DeviceName}", device?.Name ?? "System Default");
+        return true;
     }
 
     /// <summary>

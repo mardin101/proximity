@@ -41,11 +41,15 @@ public class MainViewModel : ViewModelBase
     private string _chatInput = string.Empty;
     private string _currentSessionName = string.Empty;
     private bool _isHost;
+    private AudioDevice? _selectedInputDevice;
+    private AudioDevice? _selectedOutputDevice;
 
     // Collections
     public ObservableCollection<SessionViewModel> DiscoveredSessions { get; } = new();
     public ObservableCollection<ParticipantViewModel> Participants { get; } = new();
     public ObservableCollection<ChatMessageViewModel> ChatMessages { get; } = new();
+    public ObservableCollection<AudioDevice> InputDevices { get; } = new();
+    public ObservableCollection<AudioDevice> OutputDevices { get; } = new();
 
     // Commands
     public ICommand SetUsernameCommand { get; }
@@ -55,6 +59,7 @@ public class MainViewModel : ViewModelBase
     public ICommand ToggleMuteCommand { get; }
     public ICommand SendChatCommand { get; }
     public ICommand KickParticipantCommand { get; }
+    public ICommand RefreshAudioDevicesCommand { get; }
 
     // Properties
     public AppView CurrentView
@@ -117,6 +122,32 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _isHost, value);
     }
 
+    public AudioDevice? SelectedInputDevice
+    {
+        get => _selectedInputDevice;
+        set
+        {
+            if (SetProperty(ref _selectedInputDevice, value))
+            {
+                _audioModule.SetInputDevice(value);
+                _logger.LogInformation("User selected input device: {DeviceName}", value?.Name ?? "None");
+            }
+        }
+    }
+
+    public AudioDevice? SelectedOutputDevice
+    {
+        get => _selectedOutputDevice;
+        set
+        {
+            if (SetProperty(ref _selectedOutputDevice, value))
+            {
+                _audioModule.SetOutputDevice(value);
+                _logger.LogInformation("User selected output device: {DeviceName}", value?.Name ?? "None");
+            }
+        }
+    }
+
     public MainViewModel(
         ILogger<MainViewModel> logger,
         NetworkModule networkModule,
@@ -137,6 +168,10 @@ public class MainViewModel : ViewModelBase
         ToggleMuteCommand = new RelayCommand(ToggleMute);
         SendChatCommand = new AsyncRelayCommand(SendChatAsync);
         KickParticipantCommand = new AsyncRelayCommand(KickParticipantAsync);
+        RefreshAudioDevicesCommand = new RelayCommand(RefreshAudioDevices);
+
+        // Load available audio devices
+        RefreshAudioDevices();
     }
 
     private async Task SetUsernameAsync()
@@ -377,6 +412,55 @@ public class MainViewModel : ViewModelBase
         IsMuted = !IsMuted;
         _ = _networkModule.SessionManager?.SendMuteStateAsync(IsMuted);
         _logger.LogInformation("Mute toggled: {IsMuted}", IsMuted);
+    }
+
+    private void RefreshAudioDevices()
+    {
+        try
+        {
+            var inputDevices = _audioModule.GetInputDevices();
+            var outputDevices = _audioModule.GetOutputDevices();
+
+            InputDevices.Clear();
+            foreach (var device in inputDevices)
+            {
+                InputDevices.Add(device);
+            }
+
+            OutputDevices.Clear();
+            foreach (var device in outputDevices)
+            {
+                OutputDevices.Add(device);
+            }
+
+            // Restore selection or select default
+            if (SelectedInputDevice != null)
+            {
+                _selectedInputDevice = InputDevices.FirstOrDefault(d => d.Id == SelectedInputDevice.Id);
+                OnPropertyChanged(nameof(SelectedInputDevice));
+            }
+            else if (InputDevices.Count > 0)
+            {
+                SelectedInputDevice = InputDevices[0];
+            }
+
+            if (SelectedOutputDevice != null)
+            {
+                _selectedOutputDevice = OutputDevices.FirstOrDefault(d => d.Id == SelectedOutputDevice.Id);
+                OnPropertyChanged(nameof(SelectedOutputDevice));
+            }
+            else if (OutputDevices.Count > 0)
+            {
+                SelectedOutputDevice = OutputDevices[0];
+            }
+
+            _logger.LogInformation("Refreshed audio devices: {InputCount} input(s), {OutputCount} output(s)",
+                InputDevices.Count, OutputDevices.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to refresh audio devices");
+        }
     }
 
     private async Task SendChatAsync()

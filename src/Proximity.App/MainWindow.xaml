@@ -345,66 +345,106 @@
 
                 <!-- Participant list (left sidebar) -->
                 <Border Grid.Column="0" Background="{StaticResource BackgroundDark}">
-                    <StackPanel Margin="0,10,0,0">
-                        <TextBlock Text="PARTICIPANTS" FontSize="11" FontWeight="Bold" 
-                                  Foreground="{StaticResource TextMuted}" Margin="15,5,15,10"
-                                 />
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <ItemsControl ItemsSource="{Binding Participants}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Padding="15,8" Margin="4,1">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#32353B"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Row="0" Margin="0,10,0,0">
+                            <TextBlock Text="PARTICIPANTS" FontSize="11" FontWeight="Bold" 
+                                      Foreground="{StaticResource TextMuted}" Margin="15,5,15,10"
+                                     />
 
-                                            <!-- User avatar circle -->
-                                            <Border Grid.Column="0" Width="32" Height="32" 
-                                                   CornerRadius="16" Background="{StaticResource AccentBlue}" 
-                                                   Margin="0,0,10,0">
-                                                <TextBlock Text="{Binding Username[0]}" 
-                                                          FontSize="14" FontWeight="Bold" Foreground="White"
-                                                          HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Border>
+                            <ItemsControl ItemsSource="{Binding Participants}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Padding="15,8" Margin="4,1">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#32353B"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
 
-                                            <!-- Username and role -->
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Username}" FontSize="14" 
-                                                              Foreground="White" FontWeight="Medium"/>
-                                                    <TextBlock Text=" (You)" FontSize="11" 
-                                                              Foreground="{StaticResource TextMuted}" 
-                                                              VerticalAlignment="Center"
-                                                              Visibility="{Binding IsSelf, 
-                                                                  Converter={StaticResource BoolToVis}}"/>
+                                                <!-- User avatar circle -->
+                                                <Border Grid.Column="0" Width="32" Height="32" 
+                                                       CornerRadius="16" Background="{StaticResource AccentBlue}" 
+                                                       Margin="0,0,10,0">
+                                                    <TextBlock Text="{Binding Username[0]}" 
+                                                              FontSize="14" FontWeight="Bold" Foreground="White"
+                                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+
+                                                <!-- Username and role -->
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="{Binding Username}" FontSize="14" 
+                                                                  Foreground="White" FontWeight="Medium"/>
+                                                        <TextBlock Text=" (You)" FontSize="11" 
+                                                                  Foreground="{StaticResource TextMuted}" 
+                                                                  VerticalAlignment="Center"
+                                                                  Visibility="{Binding IsSelf, 
+                                                                      Converter={StaticResource BoolToVis}}"/>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding RoleDisplay}" FontSize="11" 
+                                                              Foreground="{StaticResource TextMuted}"/>
                                                 </StackPanel>
-                                                <TextBlock Text="{Binding RoleDisplay}" FontSize="11" 
-                                                          Foreground="{StaticResource TextMuted}"/>
-                                            </StackPanel>
 
-                                            <!-- Mute indicator -->
-                                            <TextBlock Grid.Column="2" Text="🔇" FontSize="14" 
-                                                      VerticalAlignment="Center"
-                                                      Visibility="{Binding IsMuted, 
-                                                          Converter={StaticResource BoolToVis}}"/>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
+                                                <!-- Mute indicator -->
+                                                <TextBlock Grid.Column="2" Text="🔇" FontSize="14" 
+                                                          VerticalAlignment="Center"
+                                                          Visibility="{Binding IsMuted, 
+                                                              Converter={StaticResource BoolToVis}}"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Audio device selection panel -->
+                        <Border Grid.Row="1" BorderBrush="{StaticResource InputBackground}" 
+                                BorderThickness="0,1,0,0" Padding="12,10">
+                            <StackPanel>
+                                <TextBlock Text="AUDIO DEVICES" FontSize="11" FontWeight="Bold" 
+                                          Foreground="{StaticResource TextMuted}" Margin="0,0,0,8"/>
+
+                                <TextBlock Text="🎤 Input" FontSize="11" 
+                                          Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding InputDevices}" 
+                                         SelectedItem="{Binding SelectedInputDevice}"
+                                         DisplayMemberPath="Name"
+                                         Background="{StaticResource InputBackground}" 
+                                         Foreground="{StaticResource TextPrimary}"
+                                         FontSize="12" Padding="6,4" Margin="0,0,0,8"/>
+
+                                <TextBlock Text="🔊 Output" FontSize="11" 
+                                          Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4"/>
+                                <ComboBox ItemsSource="{Binding OutputDevices}" 
+                                         SelectedItem="{Binding SelectedOutputDevice}"
+                                         DisplayMemberPath="Name"
+                                         Background="{StaticResource InputBackground}" 
+                                         Foreground="{StaticResource TextPrimary}"
+                                         FontSize="12" Padding="6,4" Margin="0,0,0,4"/>
+
+                                <Button Content="🔄 Refresh Devices" 
+                                       Command="{Binding RefreshAudioDevicesCommand}"
+                                       FontSize="11" Foreground="{StaticResource TextSecondary}" 
+                                       Background="Transparent" BorderThickness="0" Cursor="Hand"
+                                       HorizontalAlignment="Left" Padding="0,4" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
                 </Border>
 
                 <!-- Chat area (right side) -->
