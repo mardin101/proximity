@@ -552,7 +552,21 @@
                          DisplayMemberPath="Name"
                          Background="{StaticResource InputBackground}"
                          Foreground="White" FontSize="13"
-                         Padding="8,6"/>
+                         Padding="8,6" Margin="0,0,0,15"/>
+
+                <!-- Voice Feedback -->
+                <TextBlock Text="Voice Feedback" FontSize="12"
+                          Foreground="{StaticResource TextSecondary}" Margin="0,0,0,5"/>
+                <DockPanel Margin="0,0,0,0">
+                    <TextBlock DockPanel.Dock="Right" Width="35" TextAlignment="Right"
+                              Foreground="{StaticResource TextPrimary}" FontSize="12"
+                              VerticalAlignment="Center"
+                              Text="{Binding VoiceFeedbackPercentage, StringFormat={}{0}%}"/>
+                    <Slider Minimum="0" Maximum="100"
+                           Value="{Binding VoiceFeedbackPercentage}"
+                           TickFrequency="1" IsSnapToTickEnabled="True"
+                           VerticalAlignment="Center" Margin="0,0,8,0"/>
+                </DockPanel>
             </StackPanel>
         </Border>
     </Grid>

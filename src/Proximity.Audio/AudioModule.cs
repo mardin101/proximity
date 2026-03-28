@@ -25,6 +25,20 @@ public class AudioModule : IModule
     public bool IsMuted { get; set; }
 
     /// <summary>
+    /// Percentage of incoming voice volume played back to the user's output device (0 to 100)
+    /// </summary>
+    public int VoiceFeedbackLevel
+    {
+        get => _voiceFeedbackLevel;
+        set
+        {
+            _voiceFeedbackLevel = Math.Clamp(value, 0, 100);
+            _logger.LogDebug("Voice feedback level set to {Level}%", _voiceFeedbackLevel);
+        }
+    }
+    private int _voiceFeedbackLevel = 0;
+
+    /// <summary>
     /// Available input (microphone) devices
     /// </summary>
     public IReadOnlyList<AudioDevice> InputDevices { get; private set; } = Array.Empty<AudioDevice>();
