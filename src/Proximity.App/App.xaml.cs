@@ -168,6 +168,7 @@ public partial class App : Application
                 });
 
                 // Register modules
+                services.AddSingleton<IAudioDeviceEnumerator, AudioDeviceEnumerator>();
                 services.AddSingleton<AudioModule>();
                 services.AddSingleton<NetworkModule>();
 

@@ -1,17 +1,41 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Proximity.Audio;
+using Proximity.Core.Interfaces;
 using Proximity.Core.Models;
 
 namespace Proximity.Tests;
 
+/// <summary>
+/// Stub implementation of IAudioDeviceEnumerator for testing
+/// </summary>
+internal class StubAudioDeviceEnumerator : IAudioDeviceEnumerator
+{
+    public IReadOnlyList<AudioDevice> InputDevicesToReturn { get; set; } = new List<AudioDevice>
+    {
+        new AudioDevice { Id = "default-input", Name = "Default Microphone", IsDefault = true },
+        new AudioDevice { Id = "test-mic-1", Name = "Test Microphone 1", IsDefault = false }
+    };
+
+    public IReadOnlyList<AudioDevice> OutputDevicesToReturn { get; set; } = new List<AudioDevice>
+    {
+        new AudioDevice { Id = "default-output", Name = "Default Speakers", IsDefault = true },
+        new AudioDevice { Id = "test-speaker-1", Name = "Test Speaker 1", IsDefault = false }
+    };
+
+    public IReadOnlyList<AudioDevice> GetInputDevices() => InputDevicesToReturn;
+    public IReadOnlyList<AudioDevice> GetOutputDevices() => OutputDevicesToReturn;
+}
+
 public class AudioModuleTests
 {
     private readonly AudioModule _audioModule;
+    private readonly StubAudioDeviceEnumerator _stubEnumerator;
 
     public AudioModuleTests()
     {
-        _audioModule = new AudioModule(NullLogger<AudioModule>.Instance);
+        _stubEnumerator = new StubAudioDeviceEnumerator();
+        _audioModule = new AudioModule(NullLogger<AudioModule>.Instance, _stubEnumerator);
     }
 
     [Fact]

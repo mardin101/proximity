@@ -11,6 +11,7 @@ namespace Proximity.Audio;
 public class AudioModule : IModule
 {
     private readonly ILogger<AudioModule> _logger;
+    private readonly IAudioDeviceEnumerator _deviceEnumerator;
 
     public string ModuleName => "Audio";
 
@@ -64,9 +65,10 @@ public class AudioModule : IModule
     private readonly Dictionary<Guid, float> _participantVolumes = new();
     private readonly object _volumeLock = new();
 
-    public AudioModule(ILogger<AudioModule> logger)
+    public AudioModule(ILogger<AudioModule> logger, IAudioDeviceEnumerator deviceEnumerator)
     {
         _logger = logger;
+        _deviceEnumerator = deviceEnumerator;
     }
 
     public Task InitializeAsync()
@@ -123,28 +125,19 @@ public class AudioModule : IModule
     /// </summary>
     public void RefreshDevices()
     {
-        // Placeholder: enumerate platform audio devices here (e.g., via NAudio)
-        // For now, provide a default device for each direction
-        var defaultInput = new AudioDevice
-        {
-            Id = "default-input",
-            Name = "Default Microphone",
-            IsDefault = true
-        };
-
-        var defaultOutput = new AudioDevice
-        {
-            Id = "default-output",
-            Name = "Default Speakers",
-            IsDefault = true
-        };
-
-        InputDevices = new List<AudioDevice> { defaultInput };
-        OutputDevices = new List<AudioDevice> { defaultOutput };
+        InputDevices = _deviceEnumerator.GetInputDevices();
+        OutputDevices = _deviceEnumerator.GetOutputDevices();
 
         // Auto-select defaults if nothing is selected
-        SelectedInputDevice ??= defaultInput;
-        SelectedOutputDevice ??= defaultOutput;
+        if (SelectedInputDevice is null && InputDevices.Count > 0)
+        {
+            SelectedInputDevice = InputDevices.FirstOrDefault(d => d.IsDefault) ?? InputDevices[0];
+        }
+
+        if (SelectedOutputDevice is null && OutputDevices.Count > 0)
+        {
+            SelectedOutputDevice = OutputDevices.FirstOrDefault(d => d.IsDefault) ?? OutputDevices[0];
+        }
 
         _logger.LogInformation("Refreshed audio devices: {InputCount} input(s), {OutputCount} output(s)",
             InputDevices.Count, OutputDevices.Count);
