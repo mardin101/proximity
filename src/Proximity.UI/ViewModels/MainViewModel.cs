@@ -44,6 +44,7 @@ public class MainViewModel : ViewModelBase
     private bool _isSettingsOpen;
     private AudioDevice? _selectedInputDevice;
     private AudioDevice? _selectedOutputDevice;
+    private int _voiceFeedbackPercentage;
 
     // Collections
     public ObservableCollection<SessionViewModel> DiscoveredSessions { get; } = new();
@@ -149,6 +150,18 @@ public class MainViewModel : ViewModelBase
             if (SetProperty(ref _selectedOutputDevice, value) && value != null)
             {
                 _audioModule.SelectOutputDevice(value);
+            }
+        }
+    }
+
+    public int VoiceFeedbackPercentage
+    {
+        get => _voiceFeedbackPercentage;
+        set
+        {
+            if (SetProperty(ref _voiceFeedbackPercentage, value))
+            {
+                _audioModule.VoiceFeedbackLevel = value;
             }
         }
     }

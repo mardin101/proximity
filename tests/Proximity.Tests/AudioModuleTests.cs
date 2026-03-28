@@ -158,4 +158,37 @@ public class AudioModuleTests
         // After refresh, the selection should be preserved (not overwritten)
         Assert.Equal("custom", _audioModule.SelectedInputDevice?.Id);
     }
+
+    [Fact]
+    public void VoiceFeedbackLevel_DefaultIsZero()
+    {
+        Assert.Equal(0, _audioModule.VoiceFeedbackLevel);
+    }
+
+    [Fact]
+    public void VoiceFeedbackLevel_CanBeSet()
+    {
+        _audioModule.VoiceFeedbackLevel = 50;
+        Assert.Equal(50, _audioModule.VoiceFeedbackLevel);
+    }
+
+    [Fact]
+    public void VoiceFeedbackLevel_ClampsToRange()
+    {
+        _audioModule.VoiceFeedbackLevel = 150;
+        Assert.Equal(100, _audioModule.VoiceFeedbackLevel);
+
+        _audioModule.VoiceFeedbackLevel = -10;
+        Assert.Equal(0, _audioModule.VoiceFeedbackLevel);
+    }
+
+    [Fact]
+    public void VoiceFeedbackLevel_AcceptsBoundaryValues()
+    {
+        _audioModule.VoiceFeedbackLevel = 0;
+        Assert.Equal(0, _audioModule.VoiceFeedbackLevel);
+
+        _audioModule.VoiceFeedbackLevel = 100;
+        Assert.Equal(100, _audioModule.VoiceFeedbackLevel);
+    }
 }
