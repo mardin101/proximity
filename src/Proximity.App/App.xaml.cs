@@ -156,11 +156,8 @@ public partial class App : Application
                 services.Configure<AppSettings>(configuration);
 
                 // Register network settings for port configuration
-                var networkSettings = new NetworkSettings
-                {
-                    Port = configuration.GetValue("Network:Port", 7777),
-                    MaxConnections = configuration.GetValue("Network:MaxConnections", 10)
-                };
+                var networkSettings = new NetworkSettings();
+                configuration.GetSection("Network").Bind(networkSettings);
                 services.AddSingleton(networkSettings);
 
                 // Register logging
