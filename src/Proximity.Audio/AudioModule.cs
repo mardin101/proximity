@@ -36,7 +36,7 @@ public class AudioModule : IModule
             _logger.LogDebug("Voice feedback level set to {Level}%", _voiceFeedbackLevel);
         }
     }
-    private int _voiceFeedbackLevel;
+    private int _voiceFeedbackLevel = 0;
 
     /// <summary>
     /// Available input (microphone) devices

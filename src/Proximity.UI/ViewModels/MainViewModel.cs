@@ -44,7 +44,7 @@ public class MainViewModel : ViewModelBase
     private bool _isSettingsOpen;
     private AudioDevice? _selectedInputDevice;
     private AudioDevice? _selectedOutputDevice;
-    private int _voiceFeedbackPercentage;
+    private int _voiceFeedbackPercentage = 0;
 
     // Collections
     public ObservableCollection<SessionViewModel> DiscoveredSessions { get; } = new();
@@ -223,6 +223,9 @@ public class MainViewModel : ViewModelBase
 
         _selectedOutputDevice = _audioModule.SelectedOutputDevice;
         OnPropertyChanged(nameof(SelectedOutputDevice));
+
+        _voiceFeedbackPercentage = _audioModule.VoiceFeedbackLevel;
+        OnPropertyChanged(nameof(VoiceFeedbackPercentage));
     }
 
     private async Task SetUsernameAsync()
