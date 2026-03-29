@@ -35,6 +35,7 @@ public class AudioPipeline : IDisposable
     private uint _sendSequence;
     private bool _isMuted;
     private bool _disposed;
+    private long _captureCallbackCount;
 
     /// <summary>
     /// Whether the pipeline is currently active
@@ -91,9 +92,19 @@ public class AudioPipeline : IDisposable
         _localParticipantId = localParticipantId;
         _sendSequence = 0;
         _captureAccumulatorOffset = 0;
+        _captureCallbackCount = 0;
+
+        _logger.LogInformation(
+            "Audio pipeline starting: participant={ParticipantId}, frameSize={FrameSize}, " +
+            "jitterBufferMs={JitterMs}, capture={CaptureType}, playback={PlaybackType}, transport={TransportType}, " +
+            "diagnostics={HasDiag}",
+            localParticipantId, _frameSize, _jitterBufferMs,
+            capture.GetType().Name, playback.GetType().Name, transport.GetType().Name,
+            _diagnostics != null);
 
         // Wire up capture events
         _capture.AudioDataAvailable += OnAudioCaptured;
+        _logger.LogInformation("Capture event handler wired to {CaptureType}", capture.GetType().Name);
 
         // Wire up transport receive events
         _transport.AudioReceived += OnAudioReceived;
@@ -103,7 +114,8 @@ public class AudioPipeline : IDisposable
         _capture.Start();
 
         IsActive = true;
-        _logger.LogInformation("Audio pipeline started for participant {ParticipantId}", localParticipantId);
+        _logger.LogInformation("Audio pipeline started for participant {ParticipantId}, capture.IsCapturing={IsCapturing}",
+            localParticipantId, _capture.IsCapturing);
     }
 
     /// <summary>
@@ -165,7 +177,20 @@ public class AudioPipeline : IDisposable
     /// </summary>
     private void OnAudioCaptured(object? sender, AudioDataEventArgs e)
     {
-        if (_isMuted || _transport == null) return;
+        long callbackNum = Interlocked.Increment(ref _captureCallbackCount);
+
+        if (_isMuted)
+        {
+            if (callbackNum <= 3)
+                _logger.LogInformation("[Capture] Callback #{Num}: skipped — microphone is muted", callbackNum);
+            return;
+        }
+
+        if (_transport == null)
+        {
+            _logger.LogWarning("[Capture] Callback #{Num}: skipped — transport is null", callbackNum);
+            return;
+        }
 
         try
         {
@@ -173,9 +198,32 @@ public class AudioPipeline : IDisposable
             var samples = AudioMixer.BytesToSamples(e.Buffer, 0, e.BytesRecorded);
             _diagnostics?.RecordCapture();
 
+            // Compute signal stats on captured PCM
+            short minSample = short.MaxValue, maxSample = short.MinValue;
+            long sumSquares = 0;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                if (samples[i] < minSample) minSample = samples[i];
+                if (samples[i] > maxSample) maxSample = samples[i];
+                sumSquares += (long)samples[i] * samples[i];
+            }
+            double rms = samples.Length > 0 ? Math.Sqrt((double)sumSquares / samples.Length) : 0;
+
+            if (callbackNum <= 5 || callbackNum % 500 == 0)
+            {
+                _logger.LogInformation(
+                    "[Capture] Callback #{Num}: {Bytes}B → {Samples} samples, " +
+                    "signal min={Min} max={Max} RMS={RMS:F1}, " +
+                    "accumulator offset={AccumOff}/{FrameSize}",
+                    callbackNum, e.BytesRecorded, samples.Length,
+                    minSample, maxSample, rms,
+                    _captureAccumulatorOffset, _frameSize);
+            }
+
             // Accumulate samples into frame-sized chunks
             int samplesRemaining = samples.Length;
             int sourceOffset = 0;
+            int framesEncodedThisCallback = 0;
 
             while (samplesRemaining > 0)
             {
@@ -195,20 +243,41 @@ public class AudioPipeline : IDisposable
 
                     var encoded = _codec.Encode(frameToEncode, _frameSize);
                     _diagnostics?.RecordEncode();
+                    framesEncodedThisCallback++;
 
                     var packet = BuildPacket(_sendSequence++, encoded);
 
                     _ = _transport.BroadcastAudioAsync(_localParticipantId, packet, packet.Length);
                     _diagnostics?.RecordSend();
 
+                    if (callbackNum <= 5 || callbackNum % 500 == 0)
+                    {
+                        _logger.LogInformation(
+                            "[Capture] Callback #{Num}: encoded frame seq={Seq}, " +
+                            "{PcmSamples} PCM samples → {EncodedBytes}B opus, " +
+                            "packet={PacketBytes}B broadcast to transport",
+                            callbackNum, _sendSequence - 1,
+                            _frameSize, encoded.Length,
+                            packet.Length);
+                    }
+
                     _captureAccumulatorOffset = 0;
                 }
+            }
+
+            if (callbackNum <= 5 || callbackNum % 500 == 0)
+            {
+                _logger.LogInformation(
+                    "[Capture] Callback #{Num} complete: {FramesEncoded} frames encoded this callback, " +
+                    "accumulator={AccumOff}/{FrameSize}, total seq={TotalSeq}",
+                    callbackNum, framesEncodedThisCallback,
+                    _captureAccumulatorOffset, _frameSize, _sendSequence);
             }
         }
         catch (Exception ex)
         {
             _diagnostics?.RecordCaptureError();
-            _logger.LogDebug(ex, "Error processing captured audio");
+            _logger.LogWarning(ex, "[Capture] Error processing captured audio at callback #{Num}", callbackNum);
         }
     }
 
