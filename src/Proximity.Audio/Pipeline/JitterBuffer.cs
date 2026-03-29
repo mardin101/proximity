@@ -58,8 +58,12 @@ public class JitterBuffer
     {
         lock (_lock)
         {
-            // First packet initializes the sequence tracking
+            // Track the lowest sequence number seen before priming
             if (_receivedCount == 0)
+            {
+                _nextPlaybackSequence = sequenceNumber;
+            }
+            else if (!_primed && sequenceNumber < _nextPlaybackSequence)
             {
                 _nextPlaybackSequence = sequenceNumber;
             }
