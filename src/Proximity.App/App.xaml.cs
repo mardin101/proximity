@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Proximity.Audio;
+using Proximity.Audio.Codec;
+using Proximity.Audio.Pipeline;
 using Proximity.Core.Configuration;
 using Proximity.Core.Interfaces;
 using Proximity.Core.Logging;
@@ -171,6 +173,20 @@ public partial class App : Application
                 services.AddSingleton<IAudioDeviceEnumerator, AudioDeviceEnumerator>();
                 services.AddSingleton<AudioModule>();
                 services.AddSingleton<NetworkModule>();
+
+                // Register audio pipeline components
+                var audioSettings = new AudioSettings();
+                configuration.GetSection("Audio").Bind(audioSettings);
+                services.AddSingleton(audioSettings);
+                services.AddSingleton<IAudioCodec>(sp =>
+                    new OpusCodecWrapper(
+                        sp.GetRequiredService<ILogger<OpusCodecWrapper>>(),
+                        audioSettings.SampleRate,
+                        audioSettings.Channels,
+                        audioSettings.FrameSizeSamples,
+                        audioSettings.Bitrate));
+                services.AddSingleton<AudioMixer>();
+                services.AddSingleton<AudioPipeline>();
 
                 // Register ViewModels
                 services.AddSingleton<MainViewModel>();

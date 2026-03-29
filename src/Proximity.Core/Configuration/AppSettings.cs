@@ -43,14 +43,39 @@ public class NetworkSettings
 public class AudioSettings
 {
     /// <summary>
-    /// Sample rate for audio
+    /// Sample rate for audio (Hz)
     /// </summary>
     public int SampleRate { get; set; } = 48000;
 
     /// <summary>
-    /// Audio buffer size
+    /// Audio buffer size in samples
     /// </summary>
     public int BufferSize { get; set; } = 1024;
+
+    /// <summary>
+    /// Number of audio channels (1 = mono, 2 = stereo)
+    /// </summary>
+    public int Channels { get; set; } = 1;
+
+    /// <summary>
+    /// Opus frame size in milliseconds (5, 10, 20, 40, 60)
+    /// </summary>
+    public int FrameSizeMs { get; set; } = 20;
+
+    /// <summary>
+    /// Opus encoder bitrate in bits per second
+    /// </summary>
+    public int Bitrate { get; set; } = 32000;
+
+    /// <summary>
+    /// Jitter buffer depth in milliseconds
+    /// </summary>
+    public int JitterBufferMs { get; set; } = 60;
+
+    /// <summary>
+    /// Computed frame size in samples (SampleRate * FrameSizeMs / 1000)
+    /// </summary>
+    public int FrameSizeSamples => SampleRate * FrameSizeMs / 1000;
 }
 
 /// <summary>
