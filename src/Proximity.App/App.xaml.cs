@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Proximity.Audio;
 using Proximity.Audio.Codec;
+using Proximity.Audio.Diagnostics;
 using Proximity.Audio.Pipeline;
 using Proximity.Core.Configuration;
 using Proximity.Core.Interfaces;
@@ -28,6 +29,7 @@ public partial class App : Application
     private readonly List<IModule> _modules = new();
     private readonly HashSet<IModule> _initializedModules = new();
     private readonly HashSet<IModule> _startedModules = new();
+    private DiagnosticsLogger? _diagnosticsLogger;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -71,6 +73,12 @@ public partial class App : Application
             }
 
             _logger.Information("All modules started successfully");
+
+            // Start audio diagnostics logger
+            var pipeline = _host.Services.GetRequiredService<AudioPipeline>();
+            var msLogger = _host.Services.GetRequiredService<ILogger<AudioPipeline>>();
+            _diagnosticsLogger = new DiagnosticsLogger(msLogger, () => pipeline.GetDiagnosticsSnapshot(), intervalMs: 5000);
+            _logger.Information("Audio diagnostics logger started (5 s interval)");
 
             // Show main window
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
@@ -121,6 +129,9 @@ public partial class App : Application
 
             _logger?.Information("All modules stopped and disposed");
             _logger?.Information("=== Proximity Application Shutdown ===");
+
+            // Stop diagnostics logger
+            _diagnosticsLogger?.Dispose();
 
             // Dispose host
             _host?.Dispose();
@@ -186,12 +197,14 @@ public partial class App : Application
                         audioSettings.FrameSizeSamples,
                         audioSettings.Bitrate));
                 services.AddSingleton<AudioMixer>();
+                services.AddSingleton<IAudioDiagnostics, AudioDiagnostics>();
                 services.AddSingleton<AudioPipeline>(sp =>
                     new AudioPipeline(
                         sp.GetRequiredService<ILogger<AudioPipeline>>(),
                         sp.GetRequiredService<IAudioCodec>(),
                         sp.GetRequiredService<AudioMixer>(),
-                        audioSettings.JitterBufferMs));
+                        audioSettings.JitterBufferMs,
+                        sp.GetRequiredService<IAudioDiagnostics>()));
 
                 // Register ViewModels
                 services.AddSingleton<MainViewModel>();

@@ -507,10 +507,14 @@
             <!-- Status bar -->
             <Border Grid.Row="2" Background="{StaticResource BackgroundDark}" Padding="15,8">
                 <Grid>
-                    <Button Content="⚙ Settings" Style="{StaticResource AccentButton}"
-                            Command="{Binding ToggleSettingsCommand}"
-                            Padding="10,4" FontSize="12"
-                            HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <Button Content="⚙ Settings" Style="{StaticResource AccentButton}"
+                                Command="{Binding ToggleSettingsCommand}"
+                                Padding="10,4" FontSize="12"/>
+                        <Button Content="🔔 Test Tone" Style="{StaticResource AccentButton}"
+                                Command="{Binding PlayTestToneCommand}"
+                                Padding="10,4" FontSize="12" Margin="8,0,0,0"/>
+                    </StackPanel>
                     <TextBlock Text="{Binding StatusMessage}" FontSize="11" 
                               Foreground="{StaticResource TextSecondary}"
                               HorizontalAlignment="Center" VerticalAlignment="Center"/>

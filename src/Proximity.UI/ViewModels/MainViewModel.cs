@@ -4,6 +4,9 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Extensions.Logging;
 using Proximity.Audio;
+using Proximity.Audio.Capture;
+using Proximity.Audio.Pipeline;
+using Proximity.Audio.Playback;
 using Proximity.Core.Configuration;
 using Proximity.Core.Models;
 using Proximity.Network;
@@ -28,8 +31,15 @@ public class MainViewModel : ViewModelBase
     private readonly ILogger<MainViewModel> _logger;
     private readonly NetworkModule _networkModule;
     private readonly AudioModule _audioModule;
+    private readonly AudioPipeline _audioPipeline;
+        private readonly AudioMixer _audioMixer;
+        private readonly AudioSettings _audioSettings;
+        private readonly ILoggerFactory _loggerFactory;
     private readonly NetworkSettings _networkSettings;
     private readonly Dispatcher _dispatcher;
+
+        private WaveInCapture? _waveInCapture;
+        private WaveOutPlayback? _waveOutPlayback;
 
     // View state
     private AppView _currentView = AppView.UsernameEntry;
@@ -62,6 +72,7 @@ public class MainViewModel : ViewModelBase
     public ICommand SendChatCommand { get; }
     public ICommand KickParticipantCommand { get; }
     public ICommand ToggleSettingsCommand { get; }
+    public ICommand PlayTestToneCommand { get; }
 
     // Properties
     public AppView CurrentView
@@ -170,11 +181,19 @@ public class MainViewModel : ViewModelBase
         ILogger<MainViewModel> logger,
         NetworkModule networkModule,
         AudioModule audioModule,
+        AudioPipeline audioPipeline,
+        AudioMixer audioMixer,
+        AudioSettings audioSettings,
+        ILoggerFactory loggerFactory,
         NetworkSettings networkSettings)
     {
         _logger = logger;
         _networkModule = networkModule;
         _audioModule = audioModule;
+        _audioPipeline = audioPipeline;
+        _audioMixer = audioMixer;
+        _audioSettings = audioSettings;
+        _loggerFactory = loggerFactory;
         _networkSettings = networkSettings;
         _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
 
@@ -187,9 +206,68 @@ public class MainViewModel : ViewModelBase
         SendChatCommand = new AsyncRelayCommand(SendChatAsync);
         KickParticipantCommand = new AsyncRelayCommand(KickParticipantAsync);
         ToggleSettingsCommand = new RelayCommand(ToggleSettings);
+        PlayTestToneCommand = new RelayCommand(PlayTestTone);
 
         // Load available audio devices
         LoadAudioDevices();
+    }
+
+    private void PlayTestTone()
+    {
+        try
+        {
+            _logger.LogInformation("Playing test tone via UI command");
+            _audioPipeline.PlayTestTone(frequencyHz: 440, durationMs: 1000, amplitude: 0.5);
+        }
+        catch (InvalidOperationException)
+        {
+            StatusMessage = "Audio pipeline not ready — join or create a session first.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to play test tone");
+            StatusMessage = $"Test tone failed: {ex.Message}";
+        }
+    }
+
+    private void StartAudioPipeline(Guid localParticipantId)
+    {
+        int inputDevice = ParseWaveDeviceNumber(_audioModule.SelectedInputDevice?.Id, "wavein-");
+        int outputDevice = ParseWaveDeviceNumber(_audioModule.SelectedOutputDevice?.Id, "waveout-");
+
+        _waveInCapture = new WaveInCapture(
+            _loggerFactory.CreateLogger<WaveInCapture>(),
+            deviceNumber: inputDevice,
+            sampleRate: _audioSettings.SampleRate,
+            channels: _audioSettings.Channels,
+            frameSizeSamples: _audioSettings.FrameSizeSamples);
+
+        _waveOutPlayback = new WaveOutPlayback(
+            _loggerFactory.CreateLogger<WaveOutPlayback>(),
+            _audioMixer,
+            deviceNumber: outputDevice,
+            sampleRate: _audioSettings.SampleRate,
+            channels: _audioSettings.Channels,
+            frameSize: _audioSettings.FrameSizeSamples);
+
+        _audioPipeline.Start(_waveInCapture, _waveOutPlayback, _networkModule.AudioTransport!, localParticipantId);
+    }
+
+    private void StopAudioPipeline()
+    {
+        _audioPipeline.Stop();
+        _waveInCapture?.Dispose();
+        _waveInCapture = null;
+        _waveOutPlayback?.Dispose();
+        _waveOutPlayback = null;
+    }
+
+    private static int ParseWaveDeviceNumber(string? deviceId, string prefix)
+    {
+        if (deviceId != null && deviceId.StartsWith(prefix, StringComparison.Ordinal)
+            && int.TryParse(deviceId.AsSpan(prefix.Length), out int n))
+            return n;
+        return -1; // -1 = system default
     }
 
     private void ToggleSettings()
@@ -333,6 +411,9 @@ public class MainViewModel : ViewModelBase
             // Start audio transport
             await _networkModule.AudioTransport!.StartAsync(session.Port + 1);
 
+            // Start audio pipeline (capture → encode → send / receive → decode → playback)
+            StartAudioPipeline(_networkModule.SessionManager.LocalParticipantId);
+
             // Wire up session events
             WireSessionEvents();
 
@@ -403,6 +484,9 @@ public class MainViewModel : ViewModelBase
             // Start audio transport
             await _networkModule.AudioTransport!.StartAsync(session.Port + 1);
 
+            // Start audio pipeline
+            StartAudioPipeline(_networkModule.SessionManager!.LocalParticipantId);
+
             IsHost = false;
             CurrentSessionName = session.SessionName;
             CurrentView = AppView.InSession;
@@ -437,6 +521,9 @@ public class MainViewModel : ViewModelBase
 
             if (_networkModule.AudioTransport != null)
                 await _networkModule.AudioTransport.StopAsync();
+
+            // Stop audio pipeline and release capture/playback devices
+            StopAudioPipeline();
 
             if (_networkModule.SessionManager != null)
                 await _networkModule.SessionManager.LeaveSessionAsync();
