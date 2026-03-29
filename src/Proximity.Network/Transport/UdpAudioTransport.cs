@@ -13,6 +13,7 @@ namespace Proximity.Network.Transport;
 public class UdpAudioTransport : IAudioTransport
 {
     private readonly ILogger<UdpAudioTransport> _logger;
+    private readonly IAudioDiagnostics? _diagnostics;
 
     private UdpClient? _udpClient;
     private CancellationTokenSource? _cts;
@@ -26,9 +27,10 @@ public class UdpAudioTransport : IAudioTransport
 
     public event EventHandler<AudioPacketEventArgs>? AudioReceived;
 
-    public UdpAudioTransport(ILogger<UdpAudioTransport> logger)
+    public UdpAudioTransport(ILogger<UdpAudioTransport> logger, IAudioDiagnostics? diagnostics = null)
     {
         _logger = logger;
+        _diagnostics = diagnostics;
     }
 
     public Task StartAsync(int port, CancellationToken cancellationToken = default)
@@ -87,6 +89,7 @@ public class UdpAudioTransport : IAudioTransport
         catch (ObjectDisposedException) { }
         catch (Exception ex)
         {
+            _diagnostics?.RecordTransportSendError();
             _logger.LogDebug(ex, "Error sending audio packet");
         }
     }
@@ -121,6 +124,7 @@ public class UdpAudioTransport : IAudioTransport
             catch (ObjectDisposedException) { }
             catch (Exception ex)
             {
+                _diagnostics?.RecordTransportSendError();
                 _logger.LogDebug(ex, "Error sending audio to {EndPoint}", endpoint);
             }
         });
@@ -156,6 +160,7 @@ public class UdpAudioTransport : IAudioTransport
             }
             catch (Exception ex)
             {
+                _diagnostics?.RecordTransportReceiveError();
                 _logger.LogDebug(ex, "Error receiving audio packet");
             }
         }

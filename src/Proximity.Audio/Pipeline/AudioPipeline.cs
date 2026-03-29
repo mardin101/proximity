@@ -17,6 +17,7 @@ public class AudioPipeline : IDisposable
     private readonly AudioMixer _mixer;
     private readonly int _frameSize;
     private readonly int _jitterBufferMs;
+    private readonly IAudioDiagnostics? _diagnostics;
 
     private IAudioCapture? _capture;
     private IAudioPlayback? _playback;
@@ -48,14 +49,32 @@ public class AudioPipeline : IDisposable
         set => _isMuted = value;
     }
 
-    public AudioPipeline(ILogger<AudioPipeline> logger, IAudioCodec codec, AudioMixer mixer, int jitterBufferMs = 60)
+    public AudioPipeline(ILogger<AudioPipeline> logger, IAudioCodec codec, AudioMixer mixer, int jitterBufferMs = 60, IAudioDiagnostics? diagnostics = null)
     {
         _logger = logger;
         _codec = codec;
         _mixer = mixer;
         _frameSize = codec.FrameSize;
         _jitterBufferMs = jitterBufferMs;
+        _diagnostics = diagnostics;
         _captureAccumulator = new short[_frameSize * 2]; // Double buffer
+    }
+
+    /// <summary>
+    /// Get a point-in-time diagnostics snapshot of the audio pipeline.
+    /// Returns null when no diagnostics instance was provided.
+    /// </summary>
+    public AudioDiagnosticsSnapshot? GetDiagnosticsSnapshot()
+    {
+        if (_diagnostics == null) return null;
+
+        int jitterFrames = 0;
+        foreach (var state in _participantStates.Values)
+        {
+            jitterFrames += state.JitterBuffer.BufferedFrames;
+        }
+
+        return _diagnostics.GetSnapshot(IsActive, IsMuted, jitterFrames, _participantStates.Count);
     }
 
     /// <summary>
@@ -151,6 +170,7 @@ public class AudioPipeline : IDisposable
         {
             // Convert bytes to PCM samples
             var samples = AudioMixer.BytesToSamples(e.Buffer, 0, e.BytesRecorded);
+            _diagnostics?.RecordCapture();
 
             // Accumulate samples into frame-sized chunks
             int samplesRemaining = samples.Length;
@@ -173,9 +193,12 @@ public class AudioPipeline : IDisposable
                     Array.Copy(_captureAccumulator, 0, frameToEncode, 0, _frameSize);
 
                     var encoded = _codec.Encode(frameToEncode, _frameSize);
+                    _diagnostics?.RecordEncode();
+
                     var packet = BuildPacket(_sendSequence++, encoded);
 
                     _ = _transport.BroadcastAudioAsync(_localParticipantId, packet, packet.Length);
+                    _diagnostics?.RecordSend();
 
                     _captureAccumulatorOffset = 0;
                 }
@@ -183,6 +206,7 @@ public class AudioPipeline : IDisposable
         }
         catch (Exception ex)
         {
+            _diagnostics?.RecordCaptureError();
             _logger.LogDebug(ex, "Error processing captured audio");
         }
     }
@@ -200,6 +224,8 @@ public class AudioPipeline : IDisposable
 
         try
         {
+            _diagnostics?.RecordReceive();
+
             var (sequenceNumber, opusData) = ParsePacket(e.AudioData, e.Length);
 
             // Get or create per-participant state
@@ -216,6 +242,8 @@ public class AudioPipeline : IDisposable
 
             // Decode and add to jitter buffer
             var decoded = state.Codec.Decode(opusData, opusData.Length);
+            _diagnostics?.RecordDecode();
+
             state.JitterBuffer.AddPacket(sequenceNumber, decoded);
 
             // Drain jitter buffer frames into playback
@@ -223,6 +251,7 @@ public class AudioPipeline : IDisposable
         }
         catch (Exception ex)
         {
+            _diagnostics?.RecordPlaybackError();
             _logger.LogDebug(ex, "Error processing received audio from {SenderId}", e.SenderId);
         }
     }
@@ -246,7 +275,9 @@ public class AudioPipeline : IDisposable
             else
             {
                 // Packet loss concealment
+                _diagnostics?.RecordJitterBufferUnderrun();
                 pcmSamples = state.Codec.DecodePLC();
+                _diagnostics?.RecordConcealedFrame();
             }
 
             // Apply volume and send to playback
@@ -255,6 +286,7 @@ public class AudioPipeline : IDisposable
             var bytes = AudioMixer.SamplesToBytes(mixed);
 
             _playback?.AddSamples(participantId, bytes, 0, bytes.Length);
+            _diagnostics?.RecordPlay();
         }
     }
 
