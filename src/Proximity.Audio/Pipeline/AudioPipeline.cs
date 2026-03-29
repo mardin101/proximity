@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Proximity.Audio.Diagnostics;
 using Proximity.Core.Interfaces;
 
 namespace Proximity.Audio.Pipeline;
@@ -316,6 +317,96 @@ public class AudioPipeline : IDisposable
         return (sequenceNumber, opusData);
     }
 
+    /// <summary>
+    /// Play a generated sine-wave test tone directly through the output device.
+    /// Bypasses the network and jitter buffer so you can verify the playback
+    /// device works independently of everything else.
+    /// </summary>
+    /// <param name="frequencyHz">Tone frequency in Hz (default 440 = A4)</param>
+    /// <param name="durationMs">Duration in milliseconds (default 1000)</param>
+    /// <param name="amplitude">Amplitude 0.0–1.0 (default 0.5)</param>
+    public void PlayTestTone(int frequencyHz = 440, int durationMs = 1000, double amplitude = 0.5)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_playback == null) throw new InvalidOperationException("Pipeline must be started before playing a test tone.");
+
+        _logger.LogInformation("Playing test tone: {Freq}Hz, {Duration}ms, amplitude={Amp:F2}", frequencyHz, durationMs, amplitude);
+
+        var pcm = ToneGenerator.GenerateSineTone(frequencyHz, durationMs, _codec.SampleRate, amplitude);
+        var bytes = AudioMixer.SamplesToBytes(pcm);
+
+        // Feed into playback using a synthetic participant ID so it doesn't
+        // interfere with real participants.
+        var toneParticipantId = Guid.Empty;
+        _playback.AddSamples(toneParticipantId, bytes, 0, bytes.Length);
+
+        _logger.LogInformation("Test tone enqueued: {Samples} samples ({Bytes} bytes)", pcm.Length, bytes.Length);
+    }
+
+    /// <summary>
+    /// Run a loopback test that encodes a test tone through Opus and decodes
+    /// it back, then plays the result through the output device.
+    /// This exercises the full codec path (encode → decode) without
+    /// requiring the network, helping isolate codec or output device issues.
+    /// </summary>
+    /// <param name="frequencyHz">Tone frequency in Hz (default 440 = A4)</param>
+    /// <param name="durationMs">Duration in milliseconds (default 1000)</param>
+    /// <param name="amplitude">Amplitude 0.0–1.0 (default 0.5)</param>
+    /// <returns>Result summary describing what happened during the loopback test.</returns>
+    public LoopbackTestResult RunLoopbackTest(int frequencyHz = 440, int durationMs = 1000, double amplitude = 0.5)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (_playback == null) throw new InvalidOperationException("Pipeline must be started before running a loopback test.");
+
+        _logger.LogInformation("Running loopback test: {Freq}Hz, {Duration}ms, amplitude={Amp:F2}", frequencyHz, durationMs, amplitude);
+
+        var pcm = ToneGenerator.GenerateSineTone(frequencyHz, durationMs, _codec.SampleRate, amplitude);
+        var frames = ToneGenerator.SplitIntoFrames(pcm, _frameSize);
+
+        int framesEncoded = 0;
+        int framesDecoded = 0;
+        int totalSamplesPlayed = 0;
+        var errors = new List<string>();
+        var toneParticipantId = Guid.Empty;
+
+        foreach (var frame in frames)
+        {
+            try
+            {
+                var encoded = _codec.Encode(frame, _frameSize);
+                framesEncoded++;
+
+                var decoded = _codec.Decode(encoded, encoded.Length);
+                framesDecoded++;
+
+                var bytes = AudioMixer.SamplesToBytes(decoded);
+                _playback.AddSamples(toneParticipantId, bytes, 0, bytes.Length);
+                totalSamplesPlayed += decoded.Length;
+            }
+            catch (Exception ex)
+            {
+                var msg = $"Frame {framesEncoded}: {ex.Message}";
+                errors.Add(msg);
+                _logger.LogWarning(ex, "Loopback test error at frame {Frame}", framesEncoded);
+            }
+        }
+
+        var result = new LoopbackTestResult(
+            TotalFrames: frames.Count,
+            FramesEncoded: framesEncoded,
+            FramesDecoded: framesDecoded,
+            TotalSamplesPlayed: totalSamplesPlayed,
+            Errors: errors);
+
+        _logger.LogInformation(
+            "Loopback test complete: {Encoded}/{Total} encoded, {Decoded}/{Total} decoded, {Samples} samples played, {Errors} errors",
+            result.FramesEncoded, result.TotalFrames,
+            result.FramesDecoded, result.TotalFrames,
+            result.TotalSamplesPlayed, result.Errors.Count);
+
+        return result;
+    }
+
     public void Dispose()
     {
         if (!_disposed)
@@ -340,4 +431,18 @@ public class AudioPipeline : IDisposable
             JitterBuffer = jitterBuffer;
         }
     }
+}
+
+/// <summary>
+/// Result of a loopback test run through <see cref="AudioPipeline.RunLoopbackTest"/>.
+/// </summary>
+public record LoopbackTestResult(
+    int TotalFrames,
+    int FramesEncoded,
+    int FramesDecoded,
+    int TotalSamplesPlayed,
+    IReadOnlyList<string> Errors)
+{
+    /// <summary>Whether the test completed without any errors.</summary>
+    public bool Success => Errors.Count == 0 && FramesEncoded == TotalFrames && FramesDecoded == TotalFrames;
 }
