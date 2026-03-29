@@ -11,10 +11,17 @@ namespace Proximity.Audio.Capture;
 public class WaveInCapture : IAudioCapture
 {
     private readonly ILogger _logger;
+    private readonly int _deviceNumber;
+    private readonly int _sampleRate;
+    private readonly int _channels;
+    private readonly int _frameSizeSamples;
     private WaveInEvent? _waveIn;
     private bool _disposed;
     private long _callbackCount;
     private long _totalBytesRecorded;
+    private int _retryCount;
+    private const int MaxRetries = 5;
+    private Timer? _retryTimer;
 
     public bool IsCapturing { get; private set; }
 
@@ -31,19 +38,36 @@ public class WaveInCapture : IAudioCapture
     public WaveInCapture(ILogger logger, int deviceNumber = -1, int sampleRate = 48000, int channels = 1, int frameSizeSamples = 960)
     {
         _logger = logger;
+        _deviceNumber = deviceNumber;
+        _sampleRate = sampleRate;
+        _channels = channels;
+        _frameSizeSamples = frameSizeSamples;
+
+        CreateWaveIn();
+
+        _logger.LogDebug("WaveIn capture created: device={Device}, {Rate}Hz, {Ch}ch, buffer={BufMs}ms",
+            deviceNumber, sampleRate, channels, _waveIn!.BufferMilliseconds);
+    }
+
+    private void CreateWaveIn()
+    {
+        // Clean up previous instance if any
+        if (_waveIn != null)
+        {
+            _waveIn.DataAvailable -= OnDataAvailable;
+            _waveIn.RecordingStopped -= OnRecordingStopped;
+            try { _waveIn.Dispose(); } catch { /* best effort */ }
+        }
 
         _waveIn = new WaveInEvent
         {
-            DeviceNumber = deviceNumber,
-            WaveFormat = new WaveFormat(sampleRate, 16, channels),
-            BufferMilliseconds = Math.Max(10, frameSizeSamples * 1000 / sampleRate)
+            DeviceNumber = _deviceNumber,
+            WaveFormat = new WaveFormat(_sampleRate, 16, _channels),
+            BufferMilliseconds = Math.Max(10, _frameSizeSamples * 1000 / _sampleRate)
         };
 
         _waveIn.DataAvailable += OnDataAvailable;
         _waveIn.RecordingStopped += OnRecordingStopped;
-
-        _logger.LogDebug("WaveIn capture created: device={Device}, {Rate}Hz, {Ch}ch, buffer={BufMs}ms",
-            deviceNumber, sampleRate, channels, _waveIn.BufferMilliseconds);
     }
 
     public void Start()
@@ -137,6 +161,58 @@ public class WaveInCapture : IAudioCapture
         if (e.Exception != null)
         {
             _logger.LogError(e.Exception, "Audio capture stopped due to error");
+
+            if (!_disposed && _retryCount < MaxRetries)
+            {
+                _retryCount++;
+                int delayMs = Math.Min(1000 * _retryCount, 5000); // 1s, 2s, 3s, 4s, 5s
+                _logger.LogWarning("Scheduling audio capture restart attempt {Attempt}/{Max} in {Delay}ms",
+                    _retryCount, MaxRetries, delayMs);
+
+                _retryTimer?.Dispose();
+                _retryTimer = new Timer(AttemptRestart, null, delayMs, Timeout.Infinite);
+            }
+            else if (_retryCount >= MaxRetries)
+            {
+                _logger.LogError("Audio capture failed after {Max} restart attempts — giving up. Reconnect or restart the session to recover.",
+                    MaxRetries);
+            }
+        }
+    }
+
+    private void AttemptRestart(object? state)
+    {
+        if (_disposed) return;
+
+        try
+        {
+            _logger.LogInformation("Attempting audio capture restart (attempt {Attempt}/{Max})", _retryCount, MaxRetries);
+
+            CreateWaveIn();
+            _waveIn?.StartRecording();
+            IsCapturing = true;
+            _retryCount = 0; // Reset on success
+            _logger.LogInformation("Audio capture restarted successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Audio capture restart attempt {Attempt}/{Max} failed", _retryCount, MaxRetries);
+
+            // Schedule another retry if we haven't exhausted attempts
+            if (!_disposed && _retryCount < MaxRetries)
+            {
+                _retryCount++;
+                int delayMs = Math.Min(1000 * _retryCount, 5000);
+                _logger.LogWarning("Scheduling next restart attempt {Attempt}/{Max} in {Delay}ms",
+                    _retryCount, MaxRetries, delayMs);
+
+                _retryTimer?.Dispose();
+                _retryTimer = new Timer(AttemptRestart, null, delayMs, Timeout.Infinite);
+            }
+            else if (_retryCount >= MaxRetries)
+            {
+                _logger.LogError("Audio capture failed after {Max} restart attempts — giving up", MaxRetries);
+            }
         }
     }
 
@@ -145,6 +221,8 @@ public class WaveInCapture : IAudioCapture
         if (!_disposed)
         {
             _disposed = true;
+            _retryTimer?.Dispose();
+            _retryTimer = null;
             Stop();
 
             if (_waveIn != null)
