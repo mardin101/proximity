@@ -46,7 +46,7 @@ public class AudioDiagnosticsSnapshot
     public long PlaybackErrors { get; init; }
 
     /// <summary>
-    /// Number of packets dropped by the jitter buffer (too old or duplicate)
+    /// Number of jitter-buffer underruns (missing frame at playback time)
     /// </summary>
     public long JitterBufferUnderruns { get; init; }
 
