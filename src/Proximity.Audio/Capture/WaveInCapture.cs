@@ -13,6 +13,8 @@ public class WaveInCapture : IAudioCapture
     private readonly ILogger _logger;
     private WaveInEvent? _waveIn;
     private bool _disposed;
+    private long _callbackCount;
+    private long _totalBytesRecorded;
 
     public bool IsCapturing { get; private set; }
 
@@ -81,11 +83,51 @@ public class WaveInCapture : IAudioCapture
 
     private void OnDataAvailable(object? sender, WaveInEventArgs e)
     {
+        var count = Interlocked.Increment(ref _callbackCount);
+        var totalBytes = Interlocked.Add(ref _totalBytesRecorded, e.BytesRecorded);
+
         if (e.BytesRecorded > 0)
         {
+            // Compute signal statistics for diagnostics
+            int sampleCount = e.BytesRecorded / 2;
+            short minSample = short.MaxValue, maxSample = short.MinValue;
+            long sumSquares = 0;
+            for (int i = 0; i < e.BytesRecorded - 1; i += 2)
+            {
+                short sample = (short)(e.Buffer[i] | (e.Buffer[i + 1] << 8));
+                if (sample < minSample) minSample = sample;
+                if (sample > maxSample) maxSample = sample;
+                sumSquares += (long)sample * sample;
+            }
+            double rms = sampleCount > 0 ? Math.Sqrt((double)sumSquares / sampleCount) : 0;
+            bool isSilent = maxSample == 0 && minSample == 0;
+
+            int subscriberCount = AudioDataAvailable?.GetInvocationList().Length ?? 0;
+
+            // Log every callback at first, then periodically
+            if (count <= 5 || count % 500 == 0)
+            {
+                _logger.LogInformation(
+                    "[WaveIn] Callback #{Count}: {Bytes}B ({Samples} samples), " +
+                    "signal min={Min} max={Max} RMS={RMS:F1} silent={Silent}, " +
+                    "subscribers={Subscribers}, totalBytes={TotalBytes}",
+                    count, e.BytesRecorded, sampleCount,
+                    minSample, maxSample, rms, isSilent,
+                    subscriberCount, totalBytes);
+            }
+
+            if (isSilent && count <= 50)
+            {
+                _logger.LogWarning("[WaveIn] Callback #{Count}: captured audio is all zeros (silent) — mic may not be providing data", count);
+            }
+
             var buffer = new byte[e.BytesRecorded];
             Buffer.BlockCopy(e.Buffer, 0, buffer, 0, e.BytesRecorded);
             AudioDataAvailable?.Invoke(this, new AudioDataEventArgs(buffer, e.BytesRecorded));
+        }
+        else
+        {
+            _logger.LogWarning("[WaveIn] Callback #{Count}: BytesRecorded=0 — no audio data from device", count);
         }
     }
 
