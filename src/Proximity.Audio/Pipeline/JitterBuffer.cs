@@ -136,8 +136,9 @@ public class JitterBuffer
 
     private void CleanupOldPackets()
     {
-        // Remove packets that are too far behind the playback position
-        const int maxLag = 50; // Maximum frames to keep behind
+        // Remove packets that are too far behind the playback position.
+        // 50 frames × 20ms = ~1 second of maximum lag tolerance.
+        const int maxLag = 50;
         foreach (var key in _buffer.Keys)
         {
             if (key + maxLag < _nextPlaybackSequence)

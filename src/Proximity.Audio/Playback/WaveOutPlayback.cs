@@ -45,6 +45,7 @@ public class WaveOutPlayback : IAudioPlayback
 
         _bufferedProvider = new BufferedWaveProvider(waveFormat)
         {
+            // 200ms provides enough buffer for jitter absorption without adding perceptible latency
             BufferDuration = TimeSpan.FromMilliseconds(200),
             DiscardOnBufferOverflow = true
         };
@@ -52,6 +53,7 @@ public class WaveOutPlayback : IAudioPlayback
         _waveOut = new WaveOutEvent
         {
             DeviceNumber = deviceNumber,
+            // 50ms target latency with 3 buffers matches the ≤50ms LAN round-trip goal
             DesiredLatency = 50,
             NumberOfBuffers = 3
         };

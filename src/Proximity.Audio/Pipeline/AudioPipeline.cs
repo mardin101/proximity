@@ -16,6 +16,7 @@ public class AudioPipeline : IDisposable
     private readonly IAudioCodec _codec;
     private readonly AudioMixer _mixer;
     private readonly int _frameSize;
+    private readonly int _jitterBufferMs;
 
     private IAudioCapture? _capture;
     private IAudioPlayback? _playback;
@@ -47,12 +48,13 @@ public class AudioPipeline : IDisposable
         set => _isMuted = value;
     }
 
-    public AudioPipeline(ILogger<AudioPipeline> logger, IAudioCodec codec, AudioMixer mixer)
+    public AudioPipeline(ILogger<AudioPipeline> logger, IAudioCodec codec, AudioMixer mixer, int jitterBufferMs = 60)
     {
         _logger = logger;
         _codec = codec;
         _mixer = mixer;
         _frameSize = codec.FrameSize;
+        _jitterBufferMs = jitterBufferMs;
         _captureAccumulator = new short[_frameSize * 2]; // Double buffer
     }
 
@@ -204,11 +206,12 @@ public class AudioPipeline : IDisposable
             var state = _participantStates.GetOrAdd(e.SenderId, id =>
             {
                 _logger.LogDebug("Creating audio state for participant {ParticipantId}", id);
+                int frameSizeMs = _codec.FrameSize * 1000 / _codec.SampleRate;
                 return new ParticipantAudioState(
                     new Codec.OpusCodecWrapper(
                         Microsoft.Extensions.Logging.Abstractions.NullLogger<Codec.OpusCodecWrapper>.Instance,
                         _codec.SampleRate, _codec.Channels, _codec.FrameSize),
-                    new JitterBuffer(_logger, 60, _codec.FrameSize * 1000 / _codec.SampleRate));
+                    new JitterBuffer(_logger, _jitterBufferMs, frameSizeMs));
             });
 
             // Decode and add to jitter buffer

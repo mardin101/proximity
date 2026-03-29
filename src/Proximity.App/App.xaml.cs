@@ -186,7 +186,12 @@ public partial class App : Application
                         audioSettings.FrameSizeSamples,
                         audioSettings.Bitrate));
                 services.AddSingleton<AudioMixer>();
-                services.AddSingleton<AudioPipeline>();
+                services.AddSingleton<AudioPipeline>(sp =>
+                    new AudioPipeline(
+                        sp.GetRequiredService<ILogger<AudioPipeline>>(),
+                        sp.GetRequiredService<IAudioCodec>(),
+                        sp.GetRequiredService<AudioMixer>(),
+                        audioSettings.JitterBufferMs));
 
                 // Register ViewModels
                 services.AddSingleton<MainViewModel>();
