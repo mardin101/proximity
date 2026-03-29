@@ -181,6 +181,66 @@ public class JitterBufferTests
         }
     }
 
+    [Fact]
+    public void GetNextFrame_StopsAfterAllFramesDrained()
+    {
+        var buffer = CreateBuffer();
+
+        // Add exactly enough frames to prime the buffer (3 frames for 60ms/20ms)
+        buffer.AddPacket(0, CreateTestFrame(100));
+        buffer.AddPacket(1, CreateTestFrame(200));
+        buffer.AddPacket(2, CreateTestFrame(300));
+        Assert.True(buffer.IsPrimed);
+
+        // Drain all frames
+        Assert.NotNull(buffer.GetNextFrame(out _));
+        Assert.NotNull(buffer.GetNextFrame(out _));
+        Assert.NotNull(buffer.GetNextFrame(out _));
+
+        // Next call must signal "nothing left" (isMissing=false, null frame)
+        // instead of endlessly returning isMissing=true.
+        var frame = buffer.GetNextFrame(out bool isMissing);
+        Assert.Null(frame);
+        Assert.False(isMissing);
+    }
+
+    [Fact]
+    public void GetNextFrame_ConcealsMissingFrameInGap_ThenStops()
+    {
+        var buffer = CreateBuffer();
+
+        // Add frames 0, 2, 3 — skip 1
+        buffer.AddPacket(0, CreateTestFrame(100));
+        buffer.AddPacket(2, CreateTestFrame(300));
+        buffer.AddPacket(3, CreateTestFrame(400));
+        Assert.True(buffer.IsPrimed);
+
+        // Frame 0: present
+        var f0 = buffer.GetNextFrame(out bool m0);
+        Assert.NotNull(f0);
+        Assert.False(m0);
+
+        // Frame 1: missing → PLC
+        var f1 = buffer.GetNextFrame(out bool m1);
+        Assert.Null(f1);
+        Assert.True(m1);
+
+        // Frame 2: present
+        var f2 = buffer.GetNextFrame(out bool m2);
+        Assert.NotNull(f2);
+        Assert.False(m2);
+
+        // Frame 3: present
+        var f3 = buffer.GetNextFrame(out bool m3);
+        Assert.NotNull(f3);
+        Assert.False(m3);
+
+        // Past the highest received — should stop, not loop
+        var f4 = buffer.GetNextFrame(out bool m4);
+        Assert.Null(f4);
+        Assert.False(m4);
+    }
+
     private static JitterBuffer CreateBuffer()
     {
         return new JitterBuffer(NullLogger.Instance, BufferDepthMs, FrameSizeMs);

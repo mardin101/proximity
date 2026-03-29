@@ -111,6 +111,14 @@ public class JitterBuffer
                 return samples;
             }
 
+            // If we've drained past the highest received sequence and the buffer
+            // is empty, there are no more frames to play back.  Signal "not ready"
+            // so the caller stops draining instead of generating PLC forever.
+            if (_nextPlaybackSequence > _highestReceivedSequence && _buffer.IsEmpty)
+            {
+                return null;
+            }
+
             // Frame is missing - advance sequence and signal PLC
             isMissing = true;
             _nextPlaybackSequence++;
