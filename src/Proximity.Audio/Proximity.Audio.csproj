@@ -5,7 +5,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Concentus" Version="2.2.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 
   <PropertyGroup>
